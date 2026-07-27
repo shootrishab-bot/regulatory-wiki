@@ -21,7 +21,7 @@
 
 generator client {
   provider = "prisma-client"
-  output   = "../generated/prisma"
+  output   = "../app/generated/prisma"
 }
 
 datasource db {
@@ -286,15 +286,20 @@ model User {
 // ============================================================================
 // OPEN QUESTIONS — resolve before treating this schema as final
 // ============================================================================
-// 1. Should Instrument Type and Status vocabularies be shared at the Domain
-//    level (one shared list financial-services-wide) rather than per
-//    Regulator? Currently TaxonomyTag is scoped per-Regulator for ALL
-//    facets including Instrument Type, which means SEBI and IFSCA would
-//    each need their own "Circular" tag row even though the concept is
-//    identical. Consider adding a Domain-level shared tag table for
-//    Instrument Type/Status specifically, with Regulator-level only for
-//    Subject/Applicability (matches the §4.2 facet-transfer analysis in
-//    STRATEGIC_PLAN.md).
+// 1. RESOLVED (2026-07-28): Instrument Type stays scoped per-Regulator, not
+//    shared at the Domain level. Real evidence from the SEBI and PFRDA
+//    scraper configs shows Instrument Type vocabularies overlap but are NOT
+//    identical even within the same Financial Services domain — e.g. PFRDA
+//    has "Enforcement Order," which neither SEBI nor IFSCA do. A shared
+//    Domain-level list would either lose that regulator-specific nuance or
+//    get bloated with entries that only apply to a couple of regulators.
+//    This confirms the original per-Regulator design was correct. Do not
+//    silently revisit this without new evidence of actual cross-regulator
+//    duplication (not just superficial name overlap).
+//    Status is a separate matter and was never part of this question: it's
+//    already a global DocumentStatus enum, not a per-Regulator TaxonomyTag
+//    facet — see open question #4 below for the (separately deferred)
+//    status question.
 // 2. SourceDocument.rawTextS3Key vs storing extracted text directly in
 //    Postgres: decided here to keep it in S3 (full text can be large,
 //    and Postgres isn't the ideal store for large blobs) — confirm this
