@@ -1,13 +1,310 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// ============================================================================
+// Regulatory Update Wiki — Database Schema
+// ============================================================================
+// Stack: PostgreSQL + Prisma (matches the existing Case Console project, so
+// the Prisma 7 driver-adapter pattern and other quirks already solved there
+// carry over directly).
+//
+// This schema encodes every structural decision made during the IFSCA
+// project: Source Document vs Update Entry, single-tag Subject with a
+// parent-hierarchy and human-gated new-tag proposals, Digest Summary
+// splitting, the amends/supersedes relationship graph, and the
+// needs_review / needs_split distinction (a flagged document and a
+// structurally-unsplittable digest are NOT the same kind of problem, and
+// the schema keeps them as separate fields rather than one generic
+// "flagged" boolean, exactly per the reasoning worked out during the
+// IFSCA build).
+//
+// NOT yet finalized — read the comments marked "OPEN QUESTION" below and
+// resolve them before treating this as final.
+// ============================================================================
 
 generator client {
   provider = "prisma-client"
-  output   = "../lib/generated/prisma"
+  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
 }
+
+// ----------------------------------------------------------------------------
+// DOMAIN / REGULATOR
+// ----------------------------------------------------------------------------
+// Domain groups regulators that share a taxonomy family (e.g. "Financial
+// Services" covers IFSCA, SEBI, RBI). Subject and Applicability vocabularies
+// are defined per Regulator (not shared across Domain automatically), since
+// even regulators in the same Domain can diverge — but Instrument Type and
+// Status vocabularies CAN be shared at the Domain level if they turn out to
+// be identical across a Domain's regulators (decide this per Domain as it's
+// built, don't assume uniformity up front).
+
+model Domain {
+  id          String       @id @default(cuid())
+  name        String       @unique // e.g. "Financial Services", "Telecom"
+  description String?
+  regulators  Regulator[]
+  createdAt   DateTime     @default(now())
+}
+
+model Regulator {
+  id              String           @id @default(cuid())
+  code            String           @unique // e.g. "IFSCA", "SEBI" — used in document codes
+  name            String           // full name
+  domainId        String
+  domain          Domain           @relation(fields: [domainId], references: [id])
+  websiteUrl      String?
+  sourceDocuments   SourceDocument[]
+  taxonomyTags      TaxonomyTag[]
+  taxonomyProposals TaxonomyProposal[]
+  createdAt         DateTime           @default(now())
+
+  @@index([domainId])
+}
+
+// ----------------------------------------------------------------------------
+// CONTROLLED TAXONOMY
+// ----------------------------------------------------------------------------
+// One table for every facet's controlled vocabulary (Subject, Instrument
+// Type, Applicability), distinguished by `facet`. Keeping them in one table
+// (rather than a separate table per facet) makes the human-gated new-tag
+// proposal workflow uniform across facets instead of needing bespoke
+// approval logic per facet.
+//
+// Subject tags support a parent/child hierarchy via `parentId`, matching
+// the IFSCA taxonomy's Insurance > IIO / IIIO style structure. Instrument
+// Type and Applicability are currently flat (no parent) — revisit if a
+// future domain needs hierarchy there too.
+
+enum Facet {
+  SUBJECT
+  INSTRUMENT_TYPE
+  APPLICABILITY
+}
+
+enum TagStatus {
+  ACTIVE
+  UNDER_REVIEW // proposed by the detection pipeline, awaiting human approval
+  DEPRECATED   // no longer used for new tagging, kept for historical entries
+}
+
+model TaxonomyTag {
+  id            String        @id @default(cuid())
+  regulatorId   String
+  regulator     Regulator     @relation(fields: [regulatorId], references: [id])
+  facet         Facet
+  name          String        // display name, e.g. "Capital Markets > Capital Market Intermediaries"
+  shortCode     String        // for document codes, e.g. "CMI"
+  definition    String?       // one-line definition, shown in the admin UI and tagging guide
+  parentId      String?
+  parent        TaxonomyTag?  @relation("TagHierarchy", fields: [parentId], references: [id])
+  children      TaxonomyTag[] @relation("TagHierarchy")
+  status        TagStatus     @default(ACTIVE)
+  versionAdded  String?       // e.g. "v1.4" — for audit trail, matches the IFSCA taxonomy's versioning
+  notes         String?       // rationale for non-obvious decisions (e.g. "Pension routes here per
+                               // explicit decision, not Fund Management — do not silently remap")
+  createdAt     DateTime      @default(now())
+
+  subjectOnEntries       UpdateEntry[]        @relation("EntrySubject")
+  instrumentOnEntries    UpdateEntry[]        @relation("EntryInstrument")
+  applicabilityOnEntries EntryApplicability[]
+
+  @@unique([regulatorId, facet, name])
+  @@index([regulatorId, facet])
+}
+
+// Proposed new tags surfaced by the detection pipeline (clustering
+// unresolved documents), awaiting human approval — see PIPELINE_OVERVIEW /
+// STRATEGIC_PLAN §5.6 for the reasoning: detection is automated, the
+// decision to actually add a tag is not.
+
+model TaxonomyProposal {
+  id                String    @id @default(cuid())
+  regulatorId       String
+  regulator         Regulator @relation(fields: [regulatorId], references: [id])
+  facet             Facet
+  proposedName      String
+  rationale         String    // why the clustering pipeline thinks this deserves a new tag
+  exampleEntryIds   String[]  // Update Entry IDs used as supporting examples
+  status            String    @default("pending") // pending | approved | rejected | merged_into_existing
+  resolvedTagId     String?   // set once approved (points at the resulting TaxonomyTag) or merged
+  reviewedBy        String?
+  reviewedAt        DateTime?
+  createdAt         DateTime  @default(now())
+
+  @@index([regulatorId, status])
+}
+
+// ----------------------------------------------------------------------------
+// SOURCE DOCUMENT / UPDATE ENTRY
+// ----------------------------------------------------------------------------
+// SourceDocument = the actual file. UpdateEntry = the tagged record. Most
+// SourceDocuments have exactly one UpdateEntry; a Digest (e.g. a Bulletin)
+// has many, each with sourceNature = DIGEST_SUMMARY and a pointer back to
+// the SourceDocument via sourceDocumentId (already the case structurally —
+// no separate "parent" field needed since digest items ARE UpdateEntries
+// of that SourceDocument, same as a normal single-entry document).
+
+enum SourceNature {
+  PRIMARY
+  DIGEST_SUMMARY
+}
+
+enum DocumentStatus {
+  IN_FORCE
+  DRAFT_CONSULTATION
+  AMENDED
+  SUPERSEDED_REPEALED
+}
+
+model SourceDocument {
+  id            String        @id @default(cuid())
+  regulatorId   String
+  regulator     Regulator     @relation(fields: [regulatorId], references: [id])
+  title         String
+  sourceUrl     String        // the page/listing this was discovered on
+  fileUrl       String?       // direct link to the PDF/file, if different from sourceUrl
+  s3Key         String?       // where the raw file lives in object storage
+  publishedDate DateTime?
+  discoveredAt  DateTime      @default(now())
+  rawTextS3Key  String?       // extracted full text, stored separately from the DB row (can be large)
+  isDigest      Boolean       @default(false) // true for Bulletin-equivalent documents
+  updateEntries UpdateEntry[]
+
+  @@index([regulatorId])
+  @@unique([regulatorId, sourceUrl])
+}
+
+model UpdateEntry {
+  id                 String         @id @default(cuid())
+  documentCode       String         @unique // e.g. "IFSCA-CMI-CIR-2024-003"
+  sourceDocumentId   String
+  sourceDocument     SourceDocument @relation(fields: [sourceDocumentId], references: [id])
+  sourceNature       SourceNature   @default(PRIMARY)
+
+  title              String         // may differ from SourceDocument.title for split digest items
+  summary            String?        // short excerpt/digest, if generated
+
+  subjectId          String?
+  subject            TaxonomyTag?   @relation("EntrySubject", fields: [subjectId], references: [id])
+  instrumentTypeId   String?
+  instrumentType     TaxonomyTag?   @relation("EntryInstrument", fields: [instrumentTypeId], references: [id])
+  status             DocumentStatus @default(IN_FORCE)
+
+  applicability      EntryApplicability[]
+  relationshipsFrom  EntryRelationship[] @relation("RelationshipFrom")
+  relationshipsTo    EntryRelationship[] @relation("RelationshipTo")
+
+  subjectConfidence      Float?
+  instrumentConfidence   Float?
+  statusConfidence       Float?
+  classificationReason   String?   // the model's one-line justification — kept for auditability
+
+  needsReview        Boolean        @default(false) // genuinely uncertain classification
+  needsSplit         Boolean        @default(false) // structural digest, not yet split
+  reviewReasons      String[]
+
+  taxonomyVersion    String?        // which taxonomy version this was tagged against
+  classifiedBy        String?       // model/version used, e.g. "deepseek-chat-2026-XX" — for audit trail
+                                     // when models or prompts change
+
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  @@index([subjectId])
+  @@index([instrumentTypeId])
+  @@index([needsReview])
+  @@index([needsSplit])
+  @@index([sourceDocumentId])
+}
+
+// Applicability is multi-tag, so it needs its own join table rather than a
+// simple foreign key.
+
+model EntryApplicability {
+  id            String      @id @default(cuid())
+  updateEntryId String
+  updateEntry   UpdateEntry @relation(fields: [updateEntryId], references: [id])
+  tagId         String
+  tag           TaxonomyTag @relation(fields: [tagId], references: [id])
+
+  @@unique([updateEntryId, tagId])
+}
+
+// Relationship graph: amends / amended_by / supersedes / superseded_by /
+// extends_timeline. Modeled as directed edges between UpdateEntries.
+// `targetHint` holds the raw extracted text before it's resolved to an
+// actual UpdateEntry id (matches core_engine.py's extract_relationships,
+// which produces unresolved hints that need a second pass to match).
+
+enum RelationshipType {
+  AMENDS
+  SUPERSEDES
+  EXTENDS_TIMELINE
+}
+
+model EntryRelationship {
+  id           String            @id @default(cuid())
+  fromEntryId  String
+  fromEntry    UpdateEntry       @relation("RelationshipFrom", fields: [fromEntryId], references: [id])
+  toEntryId    String?           // null until resolved
+  toEntry      UpdateEntry?      @relation("RelationshipTo", fields: [toEntryId], references: [id])
+  type         RelationshipType
+  targetHint   String            // raw text describing the target, e.g. "IFSCA (CMI) Regulations, 2021"
+  resolved     Boolean           @default(false)
+  createdAt    DateTime          @default(now())
+
+  @@index([fromEntryId])
+  @@index([toEntryId])
+}
+
+// ----------------------------------------------------------------------------
+// ADMIN / USERS
+// ----------------------------------------------------------------------------
+// Matches the Case Console pattern (NextAuth). Two roles minimum: ADMIN
+// (taxonomy approval, manual re-tagging, sees the review queue) and VIEWER
+// (browses the public wiki). Extend if the real deployment needs more
+// granularity (e.g. per-domain admin permissions once multiple domains
+// are live).
+
+enum Role {
+  ADMIN
+  VIEWER
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  role          Role      @default(VIEWER)
+  createdAt     DateTime  @default(now())
+  // NextAuth-required fields (sessions, accounts) go here per the
+  // standard NextAuth + Prisma adapter pattern already used in Case
+  // Console — omitted here for brevity, copy that project's setup.
+}
+
+// ============================================================================
+// OPEN QUESTIONS — resolve before treating this schema as final
+// ============================================================================
+// 1. Should Instrument Type and Status vocabularies be shared at the Domain
+//    level (one shared list financial-services-wide) rather than per
+//    Regulator? Currently TaxonomyTag is scoped per-Regulator for ALL
+//    facets including Instrument Type, which means SEBI and IFSCA would
+//    each need their own "Circular" tag row even though the concept is
+//    identical. Consider adding a Domain-level shared tag table for
+//    Instrument Type/Status specifically, with Regulator-level only for
+//    Subject/Applicability (matches the §4.2 facet-transfer analysis in
+//    STRATEGIC_PLAN.md).
+// 2. SourceDocument.rawTextS3Key vs storing extracted text directly in
+//    Postgres: decided here to keep it in S3 (full text can be large,
+//    and Postgres isn't the ideal store for large blobs) — confirm this
+//    matches actual usage patterns once the admin UI needs to display
+//    full text for review.
+// 3. No explicit "Time" table — Year/Quarter are meant to be derived from
+//    SourceDocument.publishedDate at query time, not stored redundantly.
+//    Confirm the frontend's faceted-filter queries can do this
+//    efficiently at scale, or add a generated/indexed column if not.
+// 4. DocumentStatus is a fixed enum here, matching IFSCA's four values.
+//    If a future domain needs a different status vocabulary, this enum
+//    will need to become a TaxonomyTag-style facet instead — flagged
+//    here so it's not forgotten if that need arises.
