@@ -30,13 +30,23 @@ REGULATOR_CODE = "DOT"
 
 
 def _parse_date(raw: str) -> str | None:
-    """DOT's scraper normalizes to MM/DD/YYYY — convert to ISO 8601."""
+    """DOT's scraper normalizes to MM/DD/YYYY for dates it recognizes — but
+    confirmed via a real ingestion run (2026-07-28): 228 of 581 documents
+    (39%, overwhelmingly from expand_detail_page()'s topic-page sub-
+    documents) carry a DD/MM/YYYY slash-separated date instead, because
+    dot_watcher.py's own normalize_date() only tries dot/dash-separated
+    formats and passes slash-separated dates through unconverted. Rather
+    than only fixing normalize_date() (which only helps future scrapes),
+    this also tries DD/MM/YYYY here so the ALREADY-scraped data in
+    dot_master.csv gets parsed correctly without needing a re-scrape."""
     if not raw:
         return None
-    try:
-        return datetime.strptime(raw, "%m/%d/%Y").date().isoformat()
-    except ValueError:
-        return raw  # fall back to the raw string rather than dropping it silently
+    for fmt in ("%m/%d/%Y", "%d/%m/%Y"):
+        try:
+            return datetime.strptime(raw, fmt).date().isoformat()
+        except ValueError:
+            continue
+    return raw  # fall back to the raw string rather than dropping it silently
 
 
 def normalize(row: dict) -> NormalizedDocument:

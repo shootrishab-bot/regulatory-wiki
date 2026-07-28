@@ -175,12 +175,58 @@ async function classifyDocument(
 }
 
 // ---------------------------------------------------------------------------
+// Retry wrapper for transient Neon connection failures.
+//
+// Confirmed via two real runs (2026-07-28) against this long-running batch
+// (many sequential documents, each with a slow PDF download + DeepSeek call
+// in between Postgres queries): Neon's serverless compute auto-suspends
+// after a period of inactivity, and the pooled connection can be dropped/
+// refused during its cold-start wake-up. The first run lost 1 document to
+// an uncaught version of this; after moving the dedup check inside the
+// try/catch, a full re-run instead saw 553 of 581 documents fail with the
+// SAME "Can't reach database server" error — the idle gaps between this
+// workload's Postgres calls are apparently long/frequent enough to
+// reliably trigger it, not a rare edge case. A plain connectivity check
+// immediately afterward succeeded in ~4 seconds — consistent with a cold
+// start, not a real outage. Retrying with backoff, rather than failing
+// immediately, is the fix; every Postgres call in the per-document hot
+// path uses this.
+async function withRetry<T>(fn: () => Promise<T>, label: string): Promise<T> {
+  const DELAYS_MS = [2000, 5000, 10000];
+  for (let attempt = 0; attempt <= DELAYS_MS.length; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const isConnectionError =
+        err instanceof Error &&
+        (("code" in err && (err as { code?: string }).code === "P1001") ||
+          err.message.includes("Can't reach database server") ||
+          // confirmed via a real run (2026-07-28): 2/581 documents hit this
+          // exact wording — a different connection-drop message than P1001,
+          // from the underlying pg driver rather than Prisma's own wrapper
+          err.message.includes("Connection terminated unexpectedly"));
+      if (!isConnectionError || attempt === DELAYS_MS.length) {
+        throw err;
+      }
+      const delay = DELAYS_MS[attempt];
+      console.log(`  [retry] ${label} hit a connection error, retrying in ${delay}ms (attempt ${attempt + 1}/${DELAYS_MS.length})`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+  throw new Error("unreachable");
+}
+
+// ---------------------------------------------------------------------------
 // Step 1: dedup check
 // ---------------------------------------------------------------------------
 async function findExistingSourceDocument(regulatorId: string, sourceId: string) {
-  return prisma.sourceDocument.findUnique({
-    where: { regulatorId_sourceId: { regulatorId, sourceId } },
-  });
+  return withRetry(
+    () =>
+      prisma.sourceDocument.findUnique({
+        where: { regulatorId_sourceId: { regulatorId, sourceId } },
+      }),
+    "dedup check"
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -226,13 +272,17 @@ export async function getFullText(doc: NormalizedDocument): Promise<FullTextResu
 // Step 3: fetch the regulator's ACTUAL current taxonomy from Postgres
 // ---------------------------------------------------------------------------
 async function fetchActiveTaxonomy(regulatorId: string) {
-  const tags = await prisma.taxonomyTag.findMany({
-    where: {
-      regulatorId,
-      status: TagStatus.ACTIVE, // excludes UNDER_REVIEW placeholder tags
-      facet: { in: [Facet.SUBJECT, Facet.INSTRUMENT_TYPE] },
-    },
-  });
+  const tags = await withRetry(
+    () =>
+      prisma.taxonomyTag.findMany({
+        where: {
+          regulatorId,
+          status: TagStatus.ACTIVE, // excludes UNDER_REVIEW placeholder tags
+          facet: { in: [Facet.SUBJECT, Facet.INSTRUMENT_TYPE] },
+        },
+      }),
+    "fetchActiveTaxonomy"
+  );
 
   return {
     subjectTags: tags.filter((t) => t.facet === Facet.SUBJECT),
@@ -255,10 +305,14 @@ async function nextDocumentCode(
   year: number
 ): Promise<string> {
   const prefix = `${regulatorCode}-${subjectShortCode}-${instrumentShortCode}-${year}`;
-  const existing = await prisma.updateEntry.findMany({
-    where: { documentCode: { startsWith: `${prefix}-` } },
-    select: { documentCode: true },
-  });
+  const existing = await withRetry(
+    () =>
+      prisma.updateEntry.findMany({
+        where: { documentCode: { startsWith: `${prefix}-` } },
+        select: { documentCode: true },
+      }),
+    "documentCode sequence lookup"
+  );
 
   let max = 0;
   for (const { documentCode } of existing) {
@@ -279,13 +333,18 @@ export async function ingestDocument(
   regulator: { id: string; code: string; name: string },
   taxonomy: { subjectTags: TaxonomyTag[]; instrumentTags: TaxonomyTag[] }
 ): Promise<IngestOutcome> {
-  // Step 1: dedup
-  const existing = await findExistingSourceDocument(regulator.id, doc.source_id);
-  if (existing) {
-    return { status: "skipped_duplicate", sourceId: doc.source_id, title: doc.title };
-  }
-
   try {
+    // Step 1: dedup
+    // Deliberately INSIDE the try block — a transient Neon connection
+    // blip here previously crashed an entire 581-document batch run
+    // uncaught (confirmed 2026-07-28), the same "one flaky operation
+    // kills the whole run" class of bug already fixed multiple times in
+    // dot_watcher.py's Python side, just not yet applied here.
+    const existing = await findExistingSourceDocument(regulator.id, doc.source_id);
+    if (existing) {
+      return { status: "skipped_duplicate", sourceId: doc.source_id, title: doc.title };
+    }
+
     // Step 2: full text
     const { text, source: textSource, extractionFailed } = await getFullText(doc);
 
@@ -305,15 +364,29 @@ export async function ingestDocument(
     const statusValue =
       STATUS_LABEL_TO_ENUM[classification.status as StatusLabel] ?? DocumentStatus.IN_FORCE;
 
+    // Confirmed via a real run (2026-07-28): 228 of 581 documents carried
+    // a published_date the adapter couldn't parse (fixed at the source in
+    // dot_adapter.py/dot_watcher.py — see their own comments), which made
+    // `new Date(...)` return an Invalid Date and crashed the Postgres
+    // write outright. Even with that upstream fix, this ingestion service
+    // consumes adapter output it doesn't fully control — degrading
+    // gracefully here (null + a review flag) rather than trusting every
+    // adapter to always produce a parseable date is the same discipline
+    // applied to every other adapter-data-quality issue in this pipeline
+    // (text extraction failures, invalid model tags, etc.).
+    const parsedDate = doc.published_date ? new Date(doc.published_date) : null;
+    const publishedDate = parsedDate && !isNaN(parsedDate.getTime()) ? parsedDate : null;
+    const unparseableDate = Boolean(doc.published_date) && publishedDate === null;
+
     const reviewReasons: string[] = [];
     if (classification.confidence < AUTO_ACCEPT_THRESHOLD) reviewReasons.push("low_confidence");
     if (!subjectTag) reviewReasons.push("model_returned_invalid_subject_tag");
     if (!instrumentTag) reviewReasons.push("model_returned_invalid_instrument_tag");
     if (extractionFailed) reviewReasons.push("text_extraction_failed");
+    if (unparseableDate) reviewReasons.push("unparseable_published_date");
 
     const needsReview = reviewReasons.length > 0;
 
-    const publishedDate = doc.published_date ? new Date(doc.published_date) : null;
     const year = publishedDate?.getFullYear() ?? new Date().getFullYear();
 
     const documentCode = await nextDocumentCode(
@@ -324,37 +397,53 @@ export async function ingestDocument(
     );
 
     // Step 4: write to Postgres
-    const sourceDocument = await prisma.sourceDocument.create({
-      data: {
-        regulatorId: regulator.id,
-        sourceId: doc.source_id,
-        title: doc.title,
-        sourceUrl: doc.source_url,
-        fileUrl: doc.file_url,
-        publishedDate,
-        isDigest: false,
-      },
-    });
+    // Note: if a create's response is lost to a connection drop after it
+    // actually succeeded server-side, the retry will hit a unique-
+    // constraint error (not a connection error, so withRetry won't retry
+    // it further) and this document will be logged as errored even
+    // though it's really already written — self-corrects on the next
+    // run, since the dedup check will then find it. Accepted tradeoff:
+    // far better than the alternative of not retrying connection drops
+    // at all (553/581 failed that way).
+    const sourceDocument = await withRetry(
+      () =>
+        prisma.sourceDocument.create({
+          data: {
+            regulatorId: regulator.id,
+            sourceId: doc.source_id,
+            title: doc.title,
+            sourceUrl: doc.source_url,
+            fileUrl: doc.file_url,
+            publishedDate,
+            isDigest: false,
+          },
+        }),
+      "SourceDocument create"
+    );
 
-    await prisma.updateEntry.create({
-      data: {
-        documentCode,
-        sourceDocumentId: sourceDocument.id,
-        sourceNature: SourceNature.PRIMARY,
-        title: doc.title,
-        subjectId: subjectTag?.id,
-        instrumentTypeId: instrumentTag?.id,
-        status: statusValue,
-        subjectConfidence: classification.confidence,
-        instrumentConfidence: classification.confidence,
-        statusConfidence: classification.confidence,
-        classificationReason: classification.reason,
-        needsReview,
-        reviewReasons,
-        taxonomyVersion: "v1.0",
-        classifiedBy: MODEL,
-      },
-    });
+    await withRetry(
+      () =>
+        prisma.updateEntry.create({
+          data: {
+            documentCode,
+            sourceDocumentId: sourceDocument.id,
+            sourceNature: SourceNature.PRIMARY,
+            title: doc.title,
+            subjectId: subjectTag?.id,
+            instrumentTypeId: instrumentTag?.id,
+            status: statusValue,
+            subjectConfidence: classification.confidence,
+            instrumentConfidence: classification.confidence,
+            statusConfidence: classification.confidence,
+            classificationReason: classification.reason,
+            needsReview,
+            reviewReasons,
+            taxonomyVersion: "v1.0",
+            classifiedBy: MODEL,
+          },
+        }),
+      "UpdateEntry create"
+    );
 
     // Step 5: log
     const flag = needsReview ? "FLAGGED" : "auto-accepted";
@@ -375,8 +464,25 @@ export async function ingestDocument(
       reviewReasons,
     };
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    // A previous run (2026-07-28) logged 228 of these with an EMPTY
+    // message (`.message` was "" despite `err instanceof Error` being
+    // true) — not enough to diagnose the real cause. Capturing name +
+    // stack + a full own-properties JSON dump so the next occurrence is
+    // actually diagnosable instead of another blank line.
+    let message: string;
+    if (err instanceof Error) {
+      message = err.message || `(empty message) name=${err.name} stack=${err.stack?.split("\n")[0]}`;
+    } else {
+      message = String(err);
+    }
     console.log(`[ERROR] ${doc.title.slice(0, 70)} -> ${message}`);
+    if (err instanceof Error && !err.message) {
+      try {
+        console.log(`  full error detail: ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`);
+      } catch {
+        console.log(`  (error object not JSON-serializable)`);
+      }
+    }
     return { status: "error", sourceId: doc.source_id, title: doc.title, error: message };
   }
 }
@@ -385,7 +491,10 @@ export async function ingestBatch(
   docs: NormalizedDocument[],
   regulatorCode: string
 ): Promise<IngestOutcome[]> {
-  const regulator = await prisma.regulator.findUnique({ where: { code: regulatorCode } });
+  const regulator = await withRetry(
+    () => prisma.regulator.findUnique({ where: { code: regulatorCode } }),
+    "fetch regulator"
+  );
   if (!regulator) {
     throw new Error(`Regulator with code "${regulatorCode}" not found in Postgres.`);
   }

@@ -32,7 +32,16 @@ VIEWPORT = {"width": 1400, "height": 900}
 # ================= HELPERS =================
 
 def normalize_date(s):
-    for fmt in ("%d.%m.%Y", "%d-%m-%Y"):
+    # Confirmed via a real ingestion run (2026-07-28): expand_detail_page()'s
+    # topic-page sub-documents render dates as DD/MM/YYYY (slash-separated),
+    # which neither of the original two formats matched — 228 of 581
+    # documents (39%) fell through to the raw, unconverted string as a
+    # result. Added as a third fallback, tried last (after the two
+    # unambiguous dot/dash formats) since slash dates are ambiguous with
+    # MM/DD/YYYY for day<=12 — dot_adapter.py's _parse_date tries MM/DD/YYYY
+    # first for the same reason, to stay consistent with this function's
+    # established output convention.
+    for fmt in ("%d.%m.%Y", "%d-%m-%Y", "%d/%m/%Y"):
         try:
             return datetime.strptime(s, fmt).strftime("%m/%d/%Y")
         except:
