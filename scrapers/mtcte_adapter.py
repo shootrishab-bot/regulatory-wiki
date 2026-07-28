@@ -24,15 +24,152 @@ INPUT: one row from mtcte_master.csv, e.g.:
         "pdf_link": "https://www.mtcte.tec.gov.in/...",
         "pdf_filename": "type-approval-procedure-for-xyz.pdf",
         "source_page": "https://www.mtcte.tec.gov.in/",
-        "source_section": "whats_new_marquee",  # or "policy_vision_head"
+        "source_section": "whats_new_marquee",  # or "policy_vision_head",
+                                                  # "archive_circulars_instructions",
+                                                  # "archive_proforma_formats"
         "scraped_at": "...",
     }
+
+CROSS-SOURCE DEDUP (2026-07-28): mtcte_watcher.py now scrapes 4 sources —
+an archive (downloads?section=0/1, PRIMARY) plus the original homepage
+sections (whats_new_marquee, policy_vision_head — SUPPLEMENTARY,
+confirmed to carry a little real unique content and a canary-signal
+value). Its own dedup is keyed on pdf_link, but a real, confirmed site
+characteristic breaks that for cross-source duplicates: the SAME
+real-world document gets a DIFFERENT download link depending on which
+page serves it — e.g. "Notification of Telecommunication Equipment under
+Phase-VI of MTCTE" is `.../downloadDocument_20250227172803.pdf` from the
+archive but `.../downloadDocument_20250227174722_en.pdf` (an "_en"
+variant) from the homepage marquee. Confirmed via a real title-by-title
+cross-reference: 195 raw rows collapse to well under that once these
+cross-source duplicates are merged.
+
+dedup_cross_source() groups rows by fuzzy title similarity (not exact
+match — confirmed real duplicates differ by minor punctuation/wording,
+e.g. a trailing "-reg" or "New") and, within each group, prefers the
+archive-sourced row (PRIMARY source, and the only one with a real
+Active/Expired status field) over a homepage row. FUZZY_MATCH_THRESHOLD
+= 0.85 is not an arbitrary guess: confirmed real cross-source duplicates
+score 0.90-1.00 on this metric, while a real near-miss case — "Click
+here for MTCTE User Instructions" (homepage) vs "MTCTE User Instructions
+V 3.0" (archive) — scores only 0.69 AND was confirmed, by comparing
+their actual pdf_links, to point to two genuinely different files
+(.../downloadDocument_MTCTEinstructions.pdf vs
+.../downloadDocument_20240403150023.pdf) — i.e. NOT the same document
+despite similar wording. 0.85 sits cleanly between the two, erring
+toward NOT merging when a group's evidence is ambiguous, since wrongly
+merging two distinct real documents is worse than leaving a probably-
+redundant title in the output for a human to notice later.
+
+DATE-AWARE MATCHING (2026-07-28): title similarity alone is NOT enough
+to gate a merge. MTCTE periodically REISSUES certain notices — same
+topic, near-identical boilerplate title, but a genuinely different real
+filing each time (different listed_date, sometimes different status).
+Confirmed via a real audit of every multi-row group after the first
+cross-source-only version of this function shipped: 18 of 44 multi-row
+groups had wrongly merged rows with DIFFERENT archive listed_dates into
+one representative, silently discarding 39 real, distinct, dated
+filings. Concrete example: "Exemption pertaining to various parameters/
+Interfaces of ERs under MTCTE" is refiled roughly every 2-3 months (15
+distinct archive rows, 2022-08-24 through 2026-07-01, each Active or
+Expired in its own right) — fuzzy title matching alone collapsed all 15
+plus 3 real homepage duplicates into a single row.
+
+Fix: two rows may only join the same group if, in addition to clearing
+FUZZY_MATCH_THRESHOLD on title, their listed_date values are compatible
+— either equal, or at least one side has no date at all. Archive rows
+always carry a real listed_date, so two archive rows with DIFFERENT
+dates can never merge, no matter how similar their titles (this is what
+keeps the 15 distinct exemption filings separate). Homepage rows never
+carry listed_date at all, so they remain free to merge into whichever
+dated archive group they actually correspond to by title — and since
+_pick_representative() always prefers the archive row regardless of
+which specific dated group absorbs a given homepage duplicate, it does
+not matter which one it lands in: the final output is unaffected either
+way, and no real document is lost.
 """
 
 import hashlib
+import re
+from difflib import SequenceMatcher
+
 from normalized_document import NormalizedDocument
 
 REGULATOR_CODE = "MTCTE"
+
+FUZZY_MATCH_THRESHOLD = 0.85
+
+# Archive sources are PRIMARY — preferred over homepage sources within a
+# matched group, in this priority order.
+ARCHIVE_SOURCE_PRIORITY = ["archive_circulars_instructions", "archive_proforma_formats"]
+
+
+def _normalize_title_for_matching(title: str) -> str:
+    t = title.lower()
+    t = re.sub(r"\(expired\)|\(active\)", "", t)
+    t = re.sub(r"[^a-z0-9\s]", " ", t)
+    t = re.sub(r"\s+", " ", t).strip()
+    return t
+
+
+def _group_rows_by_fuzzy_title(rows: list[dict]) -> list[list[dict]]:
+    """Greedy single-linkage clustering: each row joins the first existing
+    group whose representative (its first member) it matches above
+    FUZZY_MATCH_THRESHOLD AND whose listed_date is compatible (equal, or
+    either side has no date), else starts a new group. Adequate here
+    because real duplicates in this dataset match each OTHER at 0.90+,
+    not just a shared group representative transitively — confirmed by
+    inspecting the actual matches, not assumed. The date gate is required
+    — see module docstring's DATE-AWARE MATCHING section for the real
+    39-document over-merge this caught."""
+    groups: list[list[dict]] = []
+    group_norms: list[str] = []
+    group_dates: list[str | None] = []
+
+    for row in rows:
+        norm = _normalize_title_for_matching(row.get("title", ""))
+        row_date = (row.get("listed_date") or "").strip() or None
+        placed = False
+        for i, rep_norm in enumerate(group_norms):
+            if SequenceMatcher(None, norm, rep_norm).ratio() < FUZZY_MATCH_THRESHOLD:
+                continue
+            existing_date = group_dates[i]
+            if row_date and existing_date and row_date != existing_date:
+                continue  # same title family, different real filing — not a duplicate
+            groups[i].append(row)
+            if existing_date is None and row_date:
+                group_dates[i] = row_date
+            placed = True
+            break
+        if not placed:
+            groups.append([row])
+            group_norms.append(norm)
+            group_dates.append(row_date)
+
+    return groups
+
+
+def _pick_representative(group: list[dict]) -> dict:
+    for source in ARCHIVE_SOURCE_PRIORITY:
+        for row in group:
+            if row.get("source_section") == source:
+                return row
+    # No archive row in this group — per a real Part 1 cross-reference,
+    # this should only happen for the 3 genuinely-unique policy_vision_head
+    # items (SIM/IP Security standards notification, the products-list
+    # .docx, the external voluntary-certification link). Keep as-is —
+    # there's nothing to prefer it over.
+    return group[0]
+
+
+def dedup_cross_source(rows: list[dict]) -> list[dict]:
+    """Run BEFORE normalize()/normalize_all()'s per-row mapping — collapses
+    cross-source duplicates (same real document, different pdf_link
+    depending on source) down to one representative row per real document,
+    preferring the archive-sourced version. See module docstring for the
+    real evidence behind the threshold and the priority order."""
+    groups = _group_rows_by_fuzzy_title(rows)
+    return [_pick_representative(g) for g in groups]
 
 
 def _stable_id(title: str, link: str) -> str:
@@ -74,20 +211,48 @@ def normalize(row: dict) -> NormalizedDocument:
 
 
 def normalize_all(rows: list[dict]) -> list[NormalizedDocument]:
-    return [normalize(row) for row in rows]
+    deduped_rows = dedup_cross_source(rows)
+    return [normalize(row) for row in deduped_rows]
 
 
 if __name__ == "__main__":
+    # A realistic cross-source duplicate pair (modeled on the real
+    # "Notification of Telecommunication Equipment under Phase-VI of
+    # MTCTE" case: same document, different pdf_link per source) plus one
+    # genuinely-unique homepage-only item, to sanity-check that dedup
+    # keeps exactly the archive row for the duplicate pair and keeps the
+    # unique item as-is.
     sample_rows = [
         {
             "id": "type_approval_procedure_for_xyz_device",  # the fragile original — ignored
             "title": "Type Approval Procedure for XYZ Device",
-            "pdf_link": "https://www.mtcte.tec.gov.in/documents/sample.pdf",
+            "pdf_link": "https://www.mtcte.tec.gov.in/filedownload?name=downloadDocument_20250227172803.pdf",
+            "pdf_filename": "type-approval-procedure-for-xyz-device.pdf",
+            "source_page": "https://www.mtcte.tec.gov.in/",
+            "source_section": "archive_circulars_instructions",
+            "scraped_at": "2026-07-27T10:00:00",
+        },
+        {
+            "id": "type_approval_procedure_for_xyz_device",
+            "title": "Type Approval Procedure for XYZ Device",  # same document, different link
+            "pdf_link": "https://www.mtcte.tec.gov.in/filedownload?name=downloadDocument_20250227174722_en.pdf",
             "pdf_filename": "type-approval-procedure-for-xyz-device.pdf",
             "source_page": "https://www.mtcte.tec.gov.in/",
             "source_section": "whats_new_marquee",
             "scraped_at": "2026-07-27T10:00:00",
-        }
+        },
+        {
+            "id": "voluntary_certification_procedure_and_other",
+            "title": "Click here for Voluntary Certification procedure and other related documents New",
+            "pdf_link": "https://www.tec.gov.in/voluntary-testing-certification",
+            "pdf_filename": "voluntary-certification-procedure.pdf",
+            "source_page": "https://www.mtcte.tec.gov.in/",
+            "source_section": "policy_vision_head",  # no archive counterpart — genuinely unique
+            "scraped_at": "2026-07-27T10:00:00",
+        },
     ]
-    for doc in normalize_all(sample_rows):
+    print(f"input rows: {len(sample_rows)}")
+    docs = normalize_all(sample_rows)
+    print(f"output documents after cross-source dedup: {len(docs)}")
+    for doc in docs:
         print(doc)
