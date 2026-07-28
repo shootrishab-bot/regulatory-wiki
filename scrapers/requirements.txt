@@ -1,0 +1,44 @@
+# Dependencies for the regulatory-wiki scraper/adapter pipeline (Python side
+# only — the Node/Next.js app manages its own deps via package.json).
+#
+# Setup:
+#   python -m venv .venv
+#   .venv\Scripts\activate        (Windows)   or   source .venv/bin/activate (macOS/Linux)
+#   pip install -r requirements.txt
+#   playwright install chromium   # one-time browser download for the
+#                                  # Playwright-based scrapers (see below)
+#
+# Which script needs what:
+#   playwright          sebi_multi_section_scraper.py, dot_watcher.py,
+#                        cci_watcher.py, pfrda_scraper.py, mtcte_watcher.py
+#   requests             irdai_watcher.py, fiu_watcher.py, mib_updates_scrapper.py,
+#                        ipindia.py, cerc_scraper.py, rbi_faq_scraper.py, aptel_watcher.py
+#   beautifulsoup4       irdai_watcher.py, fiu_watcher.py, cci_watcher.py,
+#                        mib_updates_scrapper.py, ipindia.py, cerc_scraper.py,
+#                        mtcte_watcher.py, aptel_watcher.py
+#   lxml                 ipindia.py (BeautifulSoup parser), rbi_faq_scraper.py (lxml.html)
+#   pandas               cci_watcher.py, ipindia.py
+#   python-dateutil       cci_watcher.py, rbi_faq_scraper.py
+#   pdfplumber            cerc_scraper.py (default), aptel_watcher.py
+#   sentence-transformers cerc_scraper.py (optional, gated by CERC_SEMANTIC=1),
+#                        aptel_watcher.py (used by default once extracted text
+#                        exceeds its HARD_CAP — see aptel_watcher.py's
+#                        semantic_extract())
+#   numpy                 aptel_watcher.py, sentence-transformers
+#
+# The normalize/*_adapter.py files and normalized_document.py use only the
+# standard library — nothing here is needed just to run an adapter's own
+# __main__ block against sample data.
+#
+# sentence-transformers pulls in torch as a transitive dependency — this is
+# by far the largest install in this list (expect a sizeable download).
+
+playwright==1.61.0
+requests==2.34.2
+beautifulsoup4==4.15.0
+lxml==6.1.1
+pandas==3.0.5
+python-dateutil==2.9.0.post0
+pdfplumber==0.11.10
+sentence-transformers==5.6.1
+numpy==2.5.1
