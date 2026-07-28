@@ -161,6 +161,10 @@ model SourceDocument {
   id            String        @id @default(cuid())
   regulatorId   String
   regulator     Regulator     @relation(fields: [regulatorId], references: [id])
+  sourceId      String        // the ORIGINAL scraper's own dedup id/hash (NormalizedDocument.source_id)
+                               // — kept as a stable fingerprint distinct from our own generated
+                               // documentCode, so the ingestion pipeline can dedup against a
+                               // scraper re-run without depending on sourceUrl matching exactly
   title         String
   sourceUrl     String        // the page/listing this was discovered on
   fileUrl       String?       // direct link to the PDF/file, if different from sourceUrl
@@ -173,6 +177,7 @@ model SourceDocument {
 
   @@index([regulatorId])
   @@unique([regulatorId, sourceUrl])
+  @@unique([regulatorId, sourceId])
 }
 
 model UpdateEntry {

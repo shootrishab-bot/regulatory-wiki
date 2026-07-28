@@ -55,3 +55,6 @@ scrapers/dot/
 scrapers/pfrda/
 scrapers/aptel/
 scrapers/cerc/
+# run logs from ad-hoc/debugging scraper invocations — not source, and
+# every future run would otherwise add more of them
+scrapers/*.log
