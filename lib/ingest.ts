@@ -42,6 +42,7 @@ export interface NormalizedDocument {
   file_url: string | null;
   file_extension_hint: string | null;
   category_hint: string | null;
+  status_hint: string | null;
   raw_text: string | null;
   raw_text_source: "html_page" | "pdf_full" | "pdf_excerpt" | null;
   needs_download: boolean;
@@ -90,6 +91,37 @@ const STATUS_LABEL_TO_ENUM: Record<StatusLabel, DocumentStatus> = {
   Amended: DocumentStatus.AMENDED,
   "Superseded/Repealed": DocumentStatus.SUPERSEDED_REPEALED,
 };
+
+// doc.status_hint carries a REAL status label from the source site itself
+// (currently only MTCTE's archive Active/Expired column) — ground truth,
+// not a model guess, so it overrides the classifier's own status
+// determination when present. Decision confirmed via a real spot-check
+// (2026-07-28) of MTCTE's actual Expired documents: both Expired PDFs with
+// an extractable text layer ("MTCTE Procedure ver 2.0" and "MTCTE Applicant
+// User Instructions") turned out to be explicitly version-numbered manuals
+// later replaced by a newer numbered version confirmed elsewhere in the same
+// archive (v2.1/v3.0 and V3.0 respectively) — i.e. real supersession, not
+// just a calendar-bound lapse with no replacement — so SUPERSEDED_REPEALED
+// is the correct mapping, not a vaguer "expired" reading.
+const STATUS_HINT_TO_ENUM: Record<string, DocumentStatus> = {
+  Active: DocumentStatus.IN_FORCE,
+  Expired: DocumentStatus.SUPERSEDED_REPEALED,
+};
+
+// Resolves the final DocumentStatus for a document: the source site's own
+// status_hint wins when present and recognized (MTCTE today); otherwise
+// falls back to the classifier's own status label, then IN_FORCE if that
+// label is missing/invalid — exactly the prior behavior, so DoT and every
+// other regulator without a status_hint signal are completely unaffected.
+export function resolveStatusValue(
+  classificationStatus: string,
+  statusHint: string | null
+): DocumentStatus {
+  if (statusHint && STATUS_HINT_TO_ENUM[statusHint]) {
+    return STATUS_HINT_TO_ENUM[statusHint];
+  }
+  return STATUS_LABEL_TO_ENUM[classificationStatus as StatusLabel] ?? DocumentStatus.IN_FORCE;
+}
 
 interface ClassificationResult {
   subject: string;
@@ -361,8 +393,7 @@ export async function ingestDocument(
     const instrumentTag = taxonomy.instrumentTags.find(
       (t) => t.name === classification.instrument_type
     );
-    const statusValue =
-      STATUS_LABEL_TO_ENUM[classification.status as StatusLabel] ?? DocumentStatus.IN_FORCE;
+    const statusValue = resolveStatusValue(classification.status, doc.status_hint);
 
     // Confirmed via a real run (2026-07-28): 228 of 581 documents carried
     // a published_date the adapter couldn't parse (fixed at the source in

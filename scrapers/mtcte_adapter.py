@@ -87,6 +87,28 @@ _pick_representative() always prefers the archive row regardless of
 which specific dated group absorbs a given homepage duplicate, it does
 not matter which one it lands in: the final output is unaffected either
 way, and no real document is lost.
+
+STATUS-AWARE MATCHING (2026-07-28): the date gate alone does not rule out
+merging two DIFFERENT real archive documents that happen to share an
+exact listed_date (e.g. the 2022-08-24 bulk-backfill placeholder date,
+which covers ~48 topically unrelated documents) if their titles also
+happen to clear FUZZY_MATCH_THRESHOLD. Checked directly against the real
+195-row dataset before assuming this couldn't happen: 0 of 39 real
+multi-row groups mix Active and Expired rows today, and the closest any
+real cross-status same-date pair came to merging was 0.795 similarity
+("Exemption pertaining to parameters of LAN Switch under MTCTE-reg"
+[Active] vs "...Radio Broadcast Receiver (RBR)..." [Expired], both
+2022-08-24) — meaningfully under the 0.85 threshold, but not by a large
+margin. Since nothing about the grouping logic actually prevents a
+same-dated, similarly-titled, different-status pair from merging, this
+is hardened explicitly rather than left as an unverified assumption: two
+rows may only merge if, in addition to title and date compatibility,
+their status_hint values are compatible — either equal, or at least one
+side has no status_hint at all (homepage rows never carry one, so this
+mirrors the existing "no date" allowance exactly). Two archive rows with
+explicitly conflicting Active/Expired values can now never merge no
+matter how similar their titles or how coincidentally aligned their
+dates.
 """
 
 import hashlib
@@ -115,20 +137,25 @@ def _normalize_title_for_matching(title: str) -> str:
 def _group_rows_by_fuzzy_title(rows: list[dict]) -> list[list[dict]]:
     """Greedy single-linkage clustering: each row joins the first existing
     group whose representative (its first member) it matches above
-    FUZZY_MATCH_THRESHOLD AND whose listed_date is compatible (equal, or
-    either side has no date), else starts a new group. Adequate here
-    because real duplicates in this dataset match each OTHER at 0.90+,
-    not just a shared group representative transitively — confirmed by
-    inspecting the actual matches, not assumed. The date gate is required
-    — see module docstring's DATE-AWARE MATCHING section for the real
-    39-document over-merge this caught."""
+    FUZZY_MATCH_THRESHOLD AND whose listed_date AND status are both
+    compatible (equal, or either side has none), else starts a new group.
+    Adequate here because real duplicates in this dataset match each
+    OTHER at 0.90+, not just a shared group representative transitively —
+    confirmed by inspecting the actual matches, not assumed. The date gate
+    is required — see module docstring's DATE-AWARE MATCHING section for
+    the real 39-document over-merge this caught. The status gate is
+    required too — see STATUS-AWARE MATCHING for why the date gate alone
+    doesn't rule out merging two different real documents that share a
+    bulk placeholder date."""
     groups: list[list[dict]] = []
     group_norms: list[str] = []
     group_dates: list[str | None] = []
+    group_statuses: list[str | None] = []
 
     for row in rows:
         norm = _normalize_title_for_matching(row.get("title", ""))
         row_date = (row.get("listed_date") or "").strip() or None
+        row_status = (row.get("status") or "").strip() or None
         placed = False
         for i, rep_norm in enumerate(group_norms):
             if SequenceMatcher(None, norm, rep_norm).ratio() < FUZZY_MATCH_THRESHOLD:
@@ -136,24 +163,49 @@ def _group_rows_by_fuzzy_title(rows: list[dict]) -> list[list[dict]]:
             existing_date = group_dates[i]
             if row_date and existing_date and row_date != existing_date:
                 continue  # same title family, different real filing — not a duplicate
+            existing_status = group_statuses[i]
+            if row_status and existing_status and row_status != existing_status:
+                continue  # explicitly conflicting Active/Expired — never the same document
             groups[i].append(row)
             if existing_date is None and row_date:
                 group_dates[i] = row_date
+            if existing_status is None and row_status:
+                group_statuses[i] = row_status
             placed = True
             break
         if not placed:
             groups.append([row])
             group_norms.append(norm)
             group_dates.append(row_date)
+            group_statuses.append(row_status)
 
     return groups
 
 
 def _pick_representative(group: list[dict]) -> dict:
+    """Picks one row per group. Source priority (archive over homepage) is
+    the primary rule. When MULTIPLE rows share the same top priority
+    level — e.g. two archive_circulars_instructions rows that merged
+    because they share a date/status and a similar-enough title (real
+    case: "Notification for Acceptance of Test Reports..." merging with
+    "Extension of Acceptance of Test Reports...", same 2022-08-24 date,
+    both Expired) — break the tie deterministically by (title, pdf_link)
+    rather than by "whichever happened to appear first in scrape order",
+    which isn't a real rule and isn't guaranteed stable across re-scrapes.
+    Given the date and status gates in _group_rows_by_fuzzy_title(), two
+    archive rows in the same group are now guaranteed to share the same
+    listed_date and the same status (archive rows always populate both,
+    and the gates require equality when both sides have a value) — so
+    this tie-break only ever needs to choose between real wording
+    variants of the same filing, never between conflicting dates or
+    conflicting statuses. Confirmed directly against the real dataset,
+    not assumed — see test_mtcte_status_gate.py's audit of every
+    multi-archive-row group."""
     for source in ARCHIVE_SOURCE_PRIORITY:
-        for row in group:
-            if row.get("source_section") == source:
-                return row
+        candidates = [row for row in group if row.get("source_section") == source]
+        if candidates:
+            candidates.sort(key=lambda row: (row.get("title", ""), row.get("pdf_link", "")))
+            return candidates[0]
     # No archive row in this group — per a real Part 1 cross-reference,
     # this should only happen for the 3 genuinely-unique policy_vision_head
     # items (SIM/IP Security standards notification, the products-list
@@ -203,6 +255,18 @@ def normalize(row: dict) -> NormalizedDocument:
                                                     # a document TYPE), pass it
                                                     # through anyway since it's
                                                     # still better than nothing
+        status_hint=row.get("status") or None,  # archive rows carry a real
+                                                  # Active/Expired value from
+                                                  # mtcte_watcher.py; homepage-
+                                                  # sourced rows (whats_new_marquee,
+                                                  # policy_vision_head) leave this
+                                                  # column blank — `or None`
+                                                  # normalizes "" to None rather
+                                                  # than passing through an empty
+                                                  # string, matching this field's
+                                                  # documented "None when the
+                                                  # source doesn't track this"
+                                                  # contract.
         raw_text=None,
         raw_text_source=None,
         needs_download=bool(link),

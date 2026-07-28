@@ -57,6 +57,20 @@ class NormalizedDocument:
                                             # classification, pass it through,
                                             # don't discard it
 
+    status_hint: Optional[str] = None      # the scraper's own REAL status label
+                                            # for this document, when the source
+                                            # site actually tracks one (e.g.
+                                            # MTCTE's archive table has a genuine
+                                            # Active/Expired column). This is
+                                            # ground truth from the regulator
+                                            # itself, not a model guess — the
+                                            # ingestion pipeline should let it
+                                            # override the classifier's own
+                                            # DocumentStatus determination when
+                                            # present. None for every regulator
+                                            # that doesn't track this (DoT and
+                                            # everything else so far).
+
     # ---- content, when the scraper already has some ----
     raw_text: Optional[str] = None
     raw_text_source: Optional[str] = None
