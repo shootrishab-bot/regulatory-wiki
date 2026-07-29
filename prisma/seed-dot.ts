@@ -173,6 +173,7 @@ const INSTRUMENT_TYPE_TAGS: Array<{ name: string; shortCode: string; definition:
   { name: "Press Release", shortCode: "PR", definition: "A press release." },
   { name: "Gazette Notification", shortCode: "GAZ", definition: "A notification published in the Official Gazette." },
   { name: "Guidelines", shortCode: "GDL", definition: "Guidelines issued by DoT (e.g. 'Guidelines for Access Services Licences')." },
+  { name: "Office Memorandum", shortCode: "OM", definition: "An internal administrative or procedural communication issued by DoT, as distinct from a public Notice or Order." },
 ];
 
 async function main() {
