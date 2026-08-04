@@ -1,65 +1,164 @@
-import Image from "next/image";
+import Link from "next/link";
+import { Building2, Layers, Tags, FileType, ArrowRight } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
+import { EntryList } from "@/components/entry-list";
+import {
+  listPublicEntries,
+  getPublicCountsByRegulator,
+  getDomainOverview,
+  getTagsByFacet,
+} from "@/lib/queries";
 
-export default function Home() {
+// These pages read live Postgres counts and must reflect an admin correction
+// immediately, so they are never prerendered at build time.
+export const dynamic = "force-dynamic";
+
+/**
+ * Home is a HUB, not a filtered list.
+ *
+ * The previous version put every regulator's Subject and Instrument Type
+ * vocabulary into two shared dropdowns. Those vocabularies are deliberately
+ * per-regulator and are not comparable across regulators, so the combined
+ * lists were long and actively misleading. Each facet now gets its own entry
+ * point where the options stay scoped to one regulator at a time.
+ */
+export default async function HomePage() {
+  const [counts, domains, subjects, instruments, recent] = await Promise.all([
+    getPublicCountsByRegulator(),
+    getDomainOverview(),
+    getTagsByFacet("SUBJECT"),
+    getTagsByFacet("INSTRUMENT_TYPE"),
+    listPublicEntries({ page: 1 }),
+  ]);
+
+  const totalDocs = counts.reduce((s, c) => s + c.count, 0);
+  const totalSubjects = subjects.reduce((s, g) => s + g.tags.length, 0);
+  const totalInstruments = instruments.reduce((s, g) => s + g.tags.length, 0);
+
+  const hubs = [
+    {
+      href: "/regulators",
+      icon: Building2,
+      title: "Regulators",
+      count: `${counts.length} regulators`,
+      description:
+        "Start from a regulator and see only its own subjects, instrument types and documents.",
+    },
+    {
+      href: "/domains",
+      icon: Layers,
+      title: "Domains",
+      count: `${domains.length} domains`,
+      description:
+        "Sector groupings. Telecom covers DoT and MTCTE; Information and Broadcasting covers MIB.",
+    },
+    {
+      href: "/subjects",
+      icon: Tags,
+      title: "Subjects",
+      count: `${totalSubjects} subject tags`,
+      description:
+        "What a document is about, grouped by regulator because each vocabulary is its own.",
+    },
+    {
+      href: "/instruments",
+      icon: FileType,
+      title: "Instrument types",
+      count: `${totalInstruments} instrument tags`,
+      description:
+        "What kind of document it is - an order, a rules notification, an advisory, a press release.",
+    },
+  ];
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="space-y-10">
+      <section>
+        <h1 className="text-3xl font-semibold tracking-tight text-balance">
+          Indian telecom and broadcasting regulation, tracked and tagged
+        </h1>
+        <p className="mt-3 max-w-2xl text-base text-muted-foreground">
+          {totalDocs.toLocaleString("en-IN")} published documents across{" "}
+          {counts.length} regulators. Every document is tagged with a subject and an
+          instrument type, and links back to the regulator&apos;s own file.
+        </p>
+
+        <form action="/documents" method="get" className="mt-5 flex max-w-xl gap-2">
+          <Input
+            type="search"
+            name="q"
+            placeholder="Search document titles..."
+            aria-label="Search document titles"
+            className="h-11"
+          />
+          <button
+            type="submit"
+            className={buttonVariants({ size: "lg" })}
+          >
+            Search
+          </button>
+        </form>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {counts.map((c) => (
+            <Link key={c.code} href={`/regulators/${c.code}`}>
+              <Badge variant="secondary" className="cursor-pointer px-3 py-1 text-sm">
+                {c.code}
+                <span className="ml-1.5 text-muted-foreground">
+                  {c.count.toLocaleString("en-IN")}
+                </span>
+              </Badge>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="mb-3 text-xl font-semibold tracking-tight">Browse by</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {hubs.map((h) => (
+            <Link key={h.href} href={h.href} className="group">
+              <Card className="h-full transition-colors group-hover:border-foreground/25 group-hover:bg-muted/40">
+                <CardHeader>
+                  <div className="flex items-center gap-2.5">
+                    <h.icon className="size-5 text-muted-foreground" aria-hidden />
+                    <CardTitle className="text-lg">{h.title}</CardTitle>
+                  </div>
+                  <CardDescription className="text-sm">{h.count}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">{h.description}</p>
+                  <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium">
+                    Browse
+                    <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
+                  </span>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <div className="mb-3 flex items-baseline justify-between gap-4">
+          <h2 className="text-xl font-semibold tracking-tight">Most recent</h2>
+          <Link href="/documents" className="text-sm text-muted-foreground hover:text-foreground">
+            View all documents
+          </Link>
+        </div>
+        <EntryList
+          entries={recent.entries.slice(0, 8)}
+          emptyMessage="No published documents yet."
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      </section>
     </div>
   );
 }

@@ -23,7 +23,7 @@ const SUBJECT_TAGS: Array<{
   name: string;
   shortCode: string;
   definition: string;
-  status: "ACTIVE" | "UNDER_REVIEW";
+  status: "ACTIVE" | "UNDER_REVIEW" | "DEPRECATED";
   notes?: string;
 }> = [
   {
@@ -91,9 +91,9 @@ const SUBJECT_TAGS: Array<{
     name: "Voluntary Certification Scheme",
     shortCode: "VOL",
     definition: "TEC's voluntary (non-mandatory) certification scheme — distinct from MTCTE's mandatory regime.",
-    status: "UNDER_REVIEW",
+    status: "DEPRECATED",
     notes:
-      "PLACEHOLDER — explicit decision to keep in scope since it appears on MTCTE's own site, but only one piece of evidence exists so far (an external link to tec.gov.in, no real document content sampled yet). Confirm or refine once real Voluntary Certification content is pulled.",
+      "RETIRED (2026-07-30) — checked against all 151 real ingested MTCTE documents (archive_circulars_instructions, archive_proforma_formats, whats_new_marquee, policy_vision_head), not just the original single external link. Exactly one substantive real match found: 'Voluntary Security Certification for IP Router and WiFi CPE' (real PDF, archive_circulars_instructions, Active), already auto-classified under Security Certification at 0.95 confidence, unflagged — the pipeline itself resolved it correctly without this tag existing. The only other candidate ('Click here for Voluntary Certification procedure...') is the same thin external tec.gov.in homepage pointer already known, no real content of its own. 0 UpdateEntry rows were ever tagged with this Subject (UNDER_REVIEW tags are excluded from the classifier's options, so this was never reachable regardless). Decision: fold into Security Certification rather than keep an indefinite placeholder open — do not re-investigate this without new evidence beyond what's already been checked here.",
   },
 ];
 

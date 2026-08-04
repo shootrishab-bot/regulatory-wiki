@@ -80,6 +80,14 @@ enum Facet {
   SUBJECT
   INSTRUMENT_TYPE
   APPLICABILITY
+  LICENSE_AUTHORISATION_TYPE // multi-tag, DoT-specific so far -- which legacy
+                              // license(s)/new-regime authorisation(s) a
+                              // document concerns. Modeled like APPLICABILITY
+                              // (its own join table, EntryLicenseAuthorisationType)
+                              // rather than like SUBJECT/INSTRUMENT_TYPE, which
+                              // are both single-tag despite INSTRUMENT_TYPE
+                              // having looked multi-tag at a glance -- confirmed
+                              // by reading the schema directly, not assumed.
 }
 
 enum TagStatus {
@@ -108,6 +116,7 @@ model TaxonomyTag {
   subjectOnEntries       UpdateEntry[]        @relation("EntrySubject")
   instrumentOnEntries    UpdateEntry[]        @relation("EntryInstrument")
   applicabilityOnEntries EntryApplicability[]
+  licenseAuthorisationTypeOnEntries EntryLicenseAuthorisationType[]
 
   @@unique([regulatorId, facet, name])
   @@index([regulatorId, facet])
@@ -176,7 +185,6 @@ model SourceDocument {
   updateEntries UpdateEntry[]
 
   @@index([regulatorId])
-  @@unique([regulatorId, sourceUrl])
   @@unique([regulatorId, sourceId])
 }
 
@@ -197,6 +205,7 @@ model UpdateEntry {
   status             DocumentStatus @default(IN_FORCE)
 
   applicability      EntryApplicability[]
+  licenseAuthorisationType EntryLicenseAuthorisationType[]
   relationshipsFrom  EntryRelationship[] @relation("RelationshipFrom")
   relationshipsTo    EntryRelationship[] @relation("RelationshipTo")
 
@@ -227,6 +236,22 @@ model UpdateEntry {
 // simple foreign key.
 
 model EntryApplicability {
+  id            String      @id @default(cuid())
+  updateEntryId String
+  updateEntry   UpdateEntry @relation(fields: [updateEntryId], references: [id])
+  tagId         String
+  tag           TaxonomyTag @relation(fields: [tagId], references: [id])
+
+  @@unique([updateEntryId, tagId])
+}
+
+// License/Authorisation Type is multi-tag, same reasoning as Applicability --
+// its own dedicated join table, NOT a reuse of EntryApplicability, so a query
+// for an entry's Applicability tags can never accidentally pick up its
+// License/Authorisation Type tags (or vice versa) just because both facets
+// happen to live in the same TaxonomyTag table.
+
+model EntryLicenseAuthorisationType {
   id            String      @id @default(cuid())
   updateEntryId String
   updateEntry   UpdateEntry @relation(fields: [updateEntryId], references: [id])

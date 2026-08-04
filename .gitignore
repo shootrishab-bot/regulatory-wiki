@@ -58,3 +58,10 @@ scrapers/cerc/
 # run logs from ad-hoc/debugging scraper invocations — not source, and
 # every future run would otherwise add more of them
 scrapers/*.log
+
+# tesseract.js language data, downloaded on demand at runtime by
+# scripts/backfill-missing-dates.ts -- a ~5MB binary artifact, not source
+eng.traineddata
+*.traineddata
+# meity scraper output dir (same reasoning as the other scraped-output dirs above)
+scrapers/meity_documents/
