@@ -12,6 +12,7 @@ import {
   UnverifiedDateBadge,
   SubjectBadge,
   InstrumentBadge,
+  IssuingEntityBadge,
 } from "@/components/entry-list";
 import { getEntry } from "@/lib/queries";
 
@@ -47,9 +48,10 @@ export default async function DocumentDetailPage({ params }: { params: Params })
             {doc.regulator.code}
           </Badge>
         </Link>
+        <IssuingEntityBadge sourceUrl={doc.sourceUrl} />
         <span className="text-sm text-muted-foreground">{formatDate(doc.publishedDate)}</span>
         {isUnverifiedDate(doc.publishedDate) && <UnverifiedDateBadge />}
-        <StatusBadge status={entry.status} />
+        <StatusBadge name={entry.statusTag?.name ?? null} />
         <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
           {entry.documentCode}
         </code>

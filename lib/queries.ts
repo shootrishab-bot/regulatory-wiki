@@ -134,13 +134,13 @@ const ENTRY_LIST_SELECT = {
   id: true,
   documentCode: true,
   title: true,
-  status: true,
   needsReview: true,
   reviewReasons: true,
   subjectConfidence: true,
   classificationReason: true,
   subject: { select: { id: true, name: true } },
   instrumentType: { select: { id: true, name: true } },
+  statusTag: { select: { id: true, name: true } },
   sourceDocument: {
     select: {
       id: true,
@@ -195,7 +195,6 @@ const ENTRY_DETAIL_SELECT = {
   documentCode: true,
   title: true,
   summary: true,
-  status: true,
   needsReview: true,
   reviewReasons: true,
   subjectConfidence: true,
@@ -208,6 +207,7 @@ const ENTRY_DETAIL_SELECT = {
   updatedAt: true,
   subject: { select: { id: true, name: true, definition: true } },
   instrumentType: { select: { id: true, name: true, definition: true } },
+  statusTag: { select: { id: true, name: true, definition: true } },
   sourceDocument: {
     select: {
       id: true,
@@ -421,6 +421,24 @@ export async function getRegulatorDetail(code: string) {
     "getRegulatorDetail counts"
   );
 
+  // The other regulators sharing this one's domain. Sideways navigation the
+  // top nav can't offer: it only knows the full list, not who the peers are.
+  const siblingRows = await withDbRetry(
+    () =>
+      prisma.$queryRaw<{ code: string; name: string; published: bigint }[]>`
+        SELECT r.code, r.name,
+               COUNT(ue.id) FILTER (WHERE NOT ue."needsReview")::bigint AS published
+        FROM "Regulator" r
+        LEFT JOIN "SourceDocument" sd ON sd."regulatorId" = r.id
+        LEFT JOIN "UpdateEntry" ue ON ue."sourceDocumentId" = sd.id
+        WHERE r."domainId" = ${regulator.domain.id}
+          AND r.id <> ${regulator.id}
+        GROUP BY r.code, r.name
+        ORDER BY COUNT(ue.id) DESC, r.code ASC
+      `,
+    "getRegulatorDetail siblings"
+  );
+
   const map = (facet: string) =>
     tagRows
       .filter((t) => t.facet === facet)
@@ -431,12 +449,23 @@ export async function getRegulatorDetail(code: string) {
         published: Number(t.published),
       }));
 
+  const published = Number(counts[0]?.published ?? 0);
+  const siblings = siblingRows.map((r) => ({
+    code: r.code,
+    name: r.name,
+    published: Number(r.published),
+  }));
+
   return {
     regulator,
     subjects: map("SUBJECT"),
     instrumentTypes: map("INSTRUMENT_TYPE"),
-    published: Number(counts[0]?.published ?? 0),
+    published,
     flagged: Number(counts[0]?.flagged ?? 0),
+    siblings,
+    // Domain totals, counting this regulator alongside its peers.
+    domainRegulators: siblings.length + 1,
+    domainPublished: siblings.reduce((s, r) => s + r.published, published),
   };
 }
 

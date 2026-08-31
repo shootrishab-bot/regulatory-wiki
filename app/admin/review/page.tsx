@@ -6,6 +6,7 @@ import {
   isSortKey,
   type BrowseFilters as Filters,
 } from "@/lib/queries";
+import { requireAdminSession } from "@/lib/require-admin";
 import { DocumentFilters } from "@/components/document-filters";
 import { Crumbs, PageHeader } from "@/components/page-shell";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +20,8 @@ function one(v: string | string[] | undefined): string | undefined {
 }
 
 export default async function ReviewQueuePage({ searchParams }: { searchParams: SearchParams }) {
+  await requireAdminSession();
+
   const sp = await searchParams;
   const rawSort = one(sp.sort);
 
@@ -63,15 +66,6 @@ export default async function ReviewQueuePage({ searchParams }: { searchParams: 
         title="Review queue"
         description={`${grandTotal.toLocaleString("en-IN")} document${grandTotal === 1 ? "" : "s"} flagged for human review. These are hidden from the public site until resolved.`}
       />
-
-      <div
-        role="note"
-        className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-300"
-      >
-        <span className="font-medium">No authentication.</span> This admin surface is
-        deliberately unprotected in this build -- anyone who can reach it can change tags. Do
-        not deploy it anywhere shared until auth is added.
-      </div>
 
       {counts.length > 0 && (
         <div className="flex flex-wrap gap-2">

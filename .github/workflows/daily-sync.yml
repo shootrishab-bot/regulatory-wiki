@@ -1,0 +1,134 @@
+name: Daily regulator sync
+
+# WHY GITHUB ACTIONS (and not Vercel Cron):
+# This repo has no vercel.json, no .vercel directory, and no deployment of any
+# kind -- it currently only runs via a local dev server. Vercel Cron requires a
+# Vercel deployment to attach to, so it is not available. GitHub Actions is
+# portable, does not depend on where this eventually gets hosted, and the
+# sibling regtracker project already schedules its ingestion exactly this way.
+#
+# KNOWN PREREQUISITE: this repo has no git remote yet, so nothing here can
+# actually fire until it is pushed to GitHub and the secrets below are set.
+# The workflow is committed ready to run, but it is NOT proven running on a
+# schedule -- only the job it invokes has been proven, by manual runs.
+
+on:
+  schedule:
+    # 03:00 UTC daily (about 08:30 IST), matching the regtracker convention.
+    # GitHub queues scheduled runs on shared runners, so the real start time
+    # can drift by several minutes. That is fine for a daily digest feed.
+    - cron: "0 3 * * *"
+  workflow_dispatch: {} # manual "Run workflow" button
+
+# Two syncs writing the same documents concurrently would race on the dedup
+# check, so let an in-flight run finish rather than starting a second.
+concurrency:
+  group: daily-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    # 11 regulators now (was 3 when this comment was first written; FIU-IND
+    # added 2026-08-25), each new document costing a DeepSeek call. CCI and
+    # DOS-ISRO were both already present in lib/sync.ts's REGULATORS array
+    # (which this job's `sync-all.ts --trigger schedule` call below already
+    # runs in full, no --only filter) before this comment was last revised --
+    # nothing needed adding here for either. What actually blocked treating
+    # CCI as safe to let this cron run was a real bug, not missing wiring:
+    # cci_scraper/pipeline.py re-downloaded, re-OCR'd, and re-classified its
+    # WHOLE ~1,317-document corpus on every single run with no check for what
+    # was already known, confirmed live 2026-08-25 to take ~48.5 minutes and
+    # exceed lib/sync.ts's scrape timeout every time. Fixed via an
+    # incremental skip (cci_scraper/pipeline.py's filter_changed_items(), a
+    # cheap HEAD-request ETag/Last-Modified check against cci.gov.in's own
+    # file server) -- a real re-run of the full tracked sync-all.ts path
+    # after the fix, with Postgres already caught up, completed in ~116
+    # seconds with 0 new documents (nothing had changed), confirming CCI is
+    # no longer the reason this job needs a large timeout budget. 120 minutes
+    # is kept as real headroom for the other regulators (DoT's own real
+    # per-topic-page crawl, primarily) and for a day CCI genuinely has a
+    # large batch of new documents, not because a routine CCI run is
+    # expected to need anywhere near it. The default 360-minute cap is still
+    # the outer bound if this proves short.
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Install Python dependencies
+        working-directory: scrapers
+        run: pip install -r requirements.txt
+
+      # CCI (cci_scraper/) is a standalone package with its own dependency
+      # set (aiohttp, pypdf, pytesseract, pdf2image, ...) -- not covered by
+      # scrapers/requirements.txt, which predates it and lists only the
+      # other 9 regulators' shared deps.
+      - name: Install CCI-specific Python dependencies
+        working-directory: scrapers/cci_scraper
+        run: pip install -r requirements.txt
+
+      # fiu_scraper (fiu_scraper/) is likewise a standalone package with its
+      # own dependency set (aiohttp, pypdf, pytesseract, pdf2image, openpyxl
+      # for loading the taxonomy workbook directly, ...) -- not covered by
+      # scrapers/requirements.txt, same situation as CCI's own step above.
+      - name: Install FIU-specific Python dependencies
+        working-directory: scrapers/fiu_scraper
+        run: pip install -r requirements.txt
+
+      # dot_watcher.py and mtcte_watcher.py drive real Chromium via Playwright.
+      # mib_updates_scrapper.py uses plain requests and does not need this.
+      - name: Install Playwright Chromium
+        run: python -m playwright install --with-deps chromium
+
+      # CCI's OCR fallback (cci_scraper/extractor.py, for pre-2015 scanned
+      # antitrust orders -- confirmed ~28% of that corpus needs it) needs
+      # both real system binaries, not just their Python bindings. Found
+      # missing during real testing (2026-08-21): pytesseract/pdf2image
+      # imported fine but OCR still failed with "Is poppler installed and in
+      # PATH?" because only the Python wrapper packages were ever installed,
+      # never the underlying poppler-utils/tesseract-ocr binaries. FIU-IND's
+      # own OCR fallback (fiu_scraper/extractor.py, ported unchanged from
+      # cci_scraper's -- confirmed live 2026-08-25 that pre-2015 Compliance
+      # Orders are scanned images too) needs the exact same binaries, so this
+      # one step covers both packages; the local dev sandbox that built
+      # fiu_scraper did NOT have these installed, so its real test-sample run
+      # (taxonomy-findings.md) has genuine extraction gaps this step avoids
+      # in CI.
+      - name: Install poppler and tesseract (CCI + FIU OCR fallback)
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils tesseract-ocr
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Run sync
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        # Exits non-zero only if EVERY regulator errored. A regulator being
+        # blocked is a recorded outcome, not a job failure -- see scripts/sync-all.ts.
+        run: npx tsx scripts/sync-all.ts --trigger schedule
+
+      - name: Show recent sync history
+        if: always()
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npx tsx scripts/show-sync-runs.ts 3
+
+      # Scraped CSVs are gitignored, so there is nothing to commit back. The
+      # durable record of each run lives in the SyncRun/SyncRunRegulator tables
+      # in Postgres, which is also what a future digest will read.

@@ -3,21 +3,20 @@
 /**
  * Server Actions for the admin review UI.
  *
- * SECURITY GAP -- DELIBERATE AND KNOWN: there is NO authentication or
- * authorization on these actions. next-auth is already a dependency and the
- * schema already has a User model with an ADMIN/VIEWER Role enum, but wiring
- * it up was explicitly deferred for this pass. Because Server Actions are
- * reachable by direct POST regardless of what the UI renders (see the
- * Next.js "Mutating Data" guide's own warning), anyone who can reach this
- * deployment can rewrite any entry's tags. That is acceptable ONLY for a
- * local demo and MUST be closed before any shared or public deployment.
- * Deliberately not adding a fake check that looks like security but is not.
+ * AUTH: resolveEntryReview now checks for a real ADMIN session itself, via
+ * getAdminSession() (lib/require-admin.ts) -- not just relying on the page
+ * that renders its form. Server Actions are reachable by direct POST
+ * regardless of what the UI renders (see the Next.js "Mutating Data" guide's
+ * own warning), so the check has to live here, not only in
+ * app/admin/review/[id]/page.tsx. Returns the same ReviewActionState shape
+ * the form already expects on failure, rather than redirecting mid-mutation.
  */
 
 import { revalidatePath } from "next/cache";
 import { Facet } from "@/app/generated/prisma/enums";
 import { prisma } from "./prisma";
 import { withDbRetry } from "./db-retry";
+import { getAdminSession } from "./require-admin";
 
 export interface ReviewActionState {
   ok: boolean;
@@ -36,6 +35,11 @@ export async function resolveEntryReview(
   _prevState: ReviewActionState,
   formData: FormData
 ): Promise<ReviewActionState> {
+  const session = await getAdminSession();
+  if (!session) {
+    return { ok: false, message: "You must be signed in as an admin to do this." };
+  }
+
   const entryId = String(formData.get("entryId") ?? "");
   const subjectId = String(formData.get("subjectId") ?? "");
   const instrumentTypeId = String(formData.get("instrumentTypeId") ?? "");

@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getEntry, getTagOptions } from "@/lib/queries";
+import { requireAdminSession } from "@/lib/require-admin";
 import {
   formatDate,
   StatusBadge,
   isUnverifiedDate,
   UnverifiedDateBadge,
+  IssuingEntityBadge,
 } from "@/components/entry-list";
 import { ReviewForm } from "@/components/review-form";
 import { DocumentPreview } from "@/components/document-preview";
@@ -13,6 +15,8 @@ import { DocumentPreview } from "@/components/document-preview";
 type Params = Promise<{ id: string }>;
 
 export default async function ReviewDetailPage({ params }: { params: Params }) {
+  await requireAdminSession();
+
   const { id } = await params;
 
   // requirePublic=false: the admin surface must be able to open flagged
@@ -43,9 +47,10 @@ export default async function ReviewDetailPage({ params }: { params: Params }) {
       <div>
         <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
           <span className="font-medium text-foreground">{doc.regulator.code}</span>
+          <IssuingEntityBadge sourceUrl={doc.sourceUrl} />
           <span>{formatDate(doc.publishedDate)}</span>
           {isUnverifiedDate(doc.publishedDate) && <UnverifiedDateBadge />}
-          <StatusBadge status={entry.status} />
+          <StatusBadge name={entry.statusTag?.name ?? null} />
           <span className="font-mono">{entry.documentCode}</span>
         </div>
         <h1 className="mt-1 text-lg font-semibold leading-snug tracking-tight">{entry.title}</h1>

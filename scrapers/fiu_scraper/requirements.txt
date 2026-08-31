@@ -1,0 +1,9 @@
+aiohttp>=3.9
+aiofiles>=23.2
+beautifulsoup4>=4.12
+markdownify>=0.13
+pypdf>=4.0
+pytesseract>=0.3.10
+pdf2image>=1.17
+tenacity>=8.2
+openpyxl>=3.1

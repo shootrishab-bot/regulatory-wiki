@@ -18,6 +18,7 @@
 
 import "dotenv/config"; // required when run standalone via tsx — see seed-dot.ts's note
 import { prisma } from "../lib/prisma";
+import { seedStandardStatusTags } from "./seed-shared";
 
 const SUBJECT_TAGS: Array<{
   name: string;
@@ -224,6 +225,8 @@ async function main() {
     });
     console.log(`  Instrument Type: ${tag.name}`);
   }
+
+  await seedStandardStatusTags(regulator.id, "MTCTE");
 
   console.log("MTCTE taxonomy seed complete.");
 }

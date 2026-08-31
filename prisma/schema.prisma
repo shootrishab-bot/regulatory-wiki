@@ -88,6 +88,16 @@ enum Facet {
                               // are both single-tag despite INSTRUMENT_TYPE
                               // having looked multi-tag at a glance -- confirmed
                               // by reading the schema directly, not assumed.
+  STATUS // single-tag, per-regulator, replacing the old fixed global
+         // DocumentStatus enum -- added for DST (2026-08-17), which is the
+         // first regulator needing a genuinely different Status vocabulary
+         // (its Funding Calls Subjects use Open/Closed/Results Announced
+         // instead of In Force/Draft/Amended/Superseded). This is exactly
+         // the scenario the schema's own former "Open Question #4" flagged
+         // as a future possibility. Every other regulator gets the same 4
+         // values as before, just now stored as data instead of a fixed
+         // enum -- see TaxonomyTag.statusAppliesToSubjectIds below for how
+         // a Status tag can be scoped to only some Subjects.
 }
 
 enum TagStatus {
@@ -111,10 +121,20 @@ model TaxonomyTag {
   versionAdded  String?       // e.g. "v1.4" — for audit trail, matches the IFSCA taxonomy's versioning
   notes         String?       // rationale for non-obvious decisions (e.g. "Pension routes here per
                                // explicit decision, not Fund Management — do not silently remap")
+  // STATUS-facet only: which SUBJECT-facet TaxonomyTag ids (same regulator)
+  // this Status value is valid for. Empty array (the default, and the only
+  // value every non-DST regulator uses) means "applies to every Subject" --
+  // matching the old global enum's uniform behavior exactly. Non-empty means
+  // this Status tag is a category error outside those specific Subjects
+  // (e.g. DST's "Open / Accepting Applications" only makes sense for its
+  // three Funding Calls Subjects) -- both the classification prompt and the
+  // ingestion pipeline's own validation read this, see lib/ingest.ts.
+  statusAppliesToSubjectIds String[] @default([])
   createdAt     DateTime      @default(now())
 
   subjectOnEntries       UpdateEntry[]        @relation("EntrySubject")
   instrumentOnEntries    UpdateEntry[]        @relation("EntryInstrument")
+  statusOnEntries        UpdateEntry[]        @relation("EntryStatus")
   applicabilityOnEntries EntryApplicability[]
   licenseAuthorisationTypeOnEntries EntryLicenseAuthorisationType[]
 
@@ -159,13 +179,6 @@ enum SourceNature {
   DIGEST_SUMMARY
 }
 
-enum DocumentStatus {
-  IN_FORCE
-  DRAFT_CONSULTATION
-  AMENDED
-  SUPERSEDED_REPEALED
-}
-
 model SourceDocument {
   id            String        @id @default(cuid())
   regulatorId   String
@@ -180,11 +193,25 @@ model SourceDocument {
   s3Key         String?       // where the raw file lives in object storage
   publishedDate DateTime?
   discoveredAt  DateTime      @default(now())
+  // Set ONCE by the ingestion pipeline when the row is first written, and
+  // never updated afterwards. This is what makes "new since yesterday"
+  // answerable for a future digest.
+  //
+  // NOTE on the overlap with discoveredAt, which already existed: they will
+  // usually hold the same instant. The difference is who sets them.
+  // discoveredAt is a database DEFAULT, so it fires on ANY insert including a
+  // manual backfill or a restore, whereas firstIngestedAt is written
+  // explicitly by ingest.ts and therefore means specifically "entered the
+  // corpus through the real ingestion pipeline". Digest queries should read
+  // this field. Nullable so the 1,767 pre-existing rows could be backfilled
+  // from discoveredAt rather than left as a misleading NULL.
+  firstIngestedAt DateTime?
   rawTextS3Key  String?       // extracted full text, stored separately from the DB row (can be large)
   isDigest      Boolean       @default(false) // true for Bulletin-equivalent documents
   updateEntries UpdateEntry[]
 
   @@index([regulatorId])
+  @@index([firstIngestedAt])
   @@unique([regulatorId, sourceId])
 }
 
@@ -202,7 +229,8 @@ model UpdateEntry {
   subject            TaxonomyTag?   @relation("EntrySubject", fields: [subjectId], references: [id])
   instrumentTypeId   String?
   instrumentType     TaxonomyTag?   @relation("EntryInstrument", fields: [instrumentTypeId], references: [id])
-  status             DocumentStatus @default(IN_FORCE)
+  statusId           String?
+  statusTag          TaxonomyTag?   @relation("EntryStatus", fields: [statusId], references: [id])
 
   applicability      EntryApplicability[]
   licenseAuthorisationType EntryLicenseAuthorisationType[]
@@ -227,6 +255,7 @@ model UpdateEntry {
 
   @@index([subjectId])
   @@index([instrumentTypeId])
+  @@index([statusId])
   @@index([needsReview])
   @@index([needsSplit])
   @@index([sourceDocumentId])
@@ -308,9 +337,17 @@ model User {
   name          String?
   role          Role      @default(VIEWER)
   createdAt     DateTime  @default(now())
-  // NextAuth-required fields (sessions, accounts) go here per the
-  // standard NextAuth + Prisma adapter pattern already used in Case
-  // Console — omitted here for brevity, copy that project's setup.
+  // NextAuth v4's Credentials provider (chosen for /admin/review's gate --
+  // see lib/auth.ts) cannot persist through an Adapter at all: NextAuth
+  // itself only calls an Adapter for OAuth/Email sign-ins, never for
+  // Credentials, so the standard Account/Session/VerificationToken tables
+  // this model's old comment anticipated are not needed here -- sessions are
+  // JWT-based instead (see lib/auth.ts's `session.strategy`). passwordHash is
+  // the one field Credentials auth actually needs; set via
+  // scripts/set-admin-password.ts, never through a public signup form (none
+  // exists -- admins are provisioned out-of-band, by design, for an
+  // internal-only tool).
+  passwordHash  String
 }
 
 // ============================================================================
@@ -339,7 +376,63 @@ model User {
 //    SourceDocument.publishedDate at query time, not stored redundantly.
 //    Confirm the frontend's faceted-filter queries can do this
 //    efficiently at scale, or add a generated/indexed column if not.
-// 4. DocumentStatus is a fixed enum here, matching IFSCA's four values.
-//    If a future domain needs a different status vocabulary, this enum
-//    will need to become a TaxonomyTag-style facet instead — flagged
-//    here so it's not forgotten if that need arises.
+// 4. RESOLVED (2026-08-17): DST needed a genuinely different status
+//    vocabulary (Funding Calls use Open/Closed/Results Announced, not
+//    In Force/Draft/Amended/Superseded), so DocumentStatus became a
+//    TaxonomyTag-style STATUS facet, exactly as anticipated here. Every
+//    pre-existing regulator was backfilled onto the same 4 values as
+//    before, now stored as per-regulator data instead of a fixed enum --
+//    see TaxonomyTag.statusAppliesToSubjectIds for how a Status value can
+//    be scoped to only some Subjects (DST is the only regulator that uses
+//    this; every other regulator's Status tags apply to all Subjects).
+// ----------------------------------------------------------------------------
+// SYNC RUN LOG
+// ----------------------------------------------------------------------------
+// Every scheduled (or manual) sync writes one SyncRun plus one
+// SyncRunRegulator per regulator attempted. This is the inspectable record a
+// future daily digest reads from -- deliberately a table rather than a log
+// file, because the digest needs to query "what was new since the last run"
+// and a file would mean parsing text.
+//
+// A regulator being BLOCKED is a first-class recorded outcome, not an error:
+// dot.gov.in and meity.gov.in have both genuinely served 403s during this
+// project, and a run where one regulator was blocked must be distinguishable
+// from a run where that regulator genuinely had nothing new.
+
+enum SyncStatus {
+  OK
+  BLOCKED   // the site refused us (403/WAF). NOT the same as "no new documents".
+  ERROR     // scraper or ingestion failed for some other reason
+  SKIPPED   // deliberately not attempted on this run
+}
+
+model SyncRun {
+  id          String              @id @default(cuid())
+  startedAt   DateTime            @default(now())
+  finishedAt  DateTime?
+  trigger     String              @default("manual") // manual | schedule
+  regulators  SyncRunRegulator[]
+
+  @@index([startedAt])
+}
+
+model SyncRunRegulator {
+  id             String     @id @default(cuid())
+  syncRunId      String
+  syncRun        SyncRun    @relation(fields: [syncRunId], references: [id], onDelete: Cascade)
+  regulatorCode  String
+  status         SyncStatus
+
+  scrapedRows    Int        @default(0)  // rows the scraper produced in total
+  newDocuments   Int        @default(0)  // genuinely new after sourceId dedup
+  ingested       Int        @default(0)  // written cleanly
+  flagged        Int        @default(0)  // written but needsReview=true
+  errors         Int        @default(0)
+
+  detail         String?                 // blocked reason / error text / notes
+  durationMs     Int        @default(0)
+  createdAt      DateTime   @default(now())
+
+  @@index([syncRunId])
+  @@index([regulatorCode, createdAt])
+}

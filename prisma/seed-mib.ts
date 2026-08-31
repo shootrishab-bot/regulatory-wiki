@@ -27,6 +27,7 @@
 
 import "dotenv/config"; // required when run standalone via tsx -- see seed-dot.ts's note
 import { prisma } from "../lib/prisma";
+import { seedStandardStatusTags } from "./seed-shared";
 
 const SUBJECT_TAGS: Array<{
   name: string;
@@ -555,6 +556,8 @@ async function main() {
     });
     console.log(`  Instrument Type: ${tag.name} (${tag.status})`);
   }
+
+  await seedStandardStatusTags(regulator.id, "MIB");
 
   const subjectActive = SUBJECT_TAGS.filter((t) => t.status === "ACTIVE").length;
   const instrumentActive = INSTRUMENT_TYPE_TAGS.filter((t) => t.status === "ACTIVE").length;

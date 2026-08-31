@@ -34,6 +34,7 @@ import "dotenv/config"; // required when run standalone via tsx — lib/prisma.t
                           // against a Prisma adapter given an undefined
                           // connection string, not a real DB issue)
 import { prisma } from "../lib/prisma"; // ADJUST PATH if needed — see note above
+import { seedStandardStatusTags } from "./seed-shared";
 
 // ---------------------------------------------------------------------------
 // SUBJECT taxonomy — built bottom-up from real DoT titles (see pressure-test).
@@ -266,6 +267,8 @@ async function main() {
     });
     console.log(`  Instrument Type: ${tag.name}`);
   }
+
+  await seedStandardStatusTags(regulator.id, "DOT");
 
   console.log("DoT taxonomy seed complete.");
 }

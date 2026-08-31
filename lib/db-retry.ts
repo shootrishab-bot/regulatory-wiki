@@ -16,7 +16,23 @@
  * ever needs it, collapse all three onto this module then.
  */
 
+/**
+ * Default profile, tuned for a PAGE RENDER: a slow response is itself a
+ * failure there, so it gives up quickly.
+ */
 const DELAYS_MS = [250, 1000, 3000];
+
+/**
+ * Profile for BATCH/BACKGROUND work, where waiting beats failing.
+ *
+ * Needed because of a real failure (2026-08-04): the daily sync ran the DoT
+ * scraper for 30 minutes with no Postgres traffic at all, Neon's serverless
+ * compute suspended in the meantime, and the first write afterwards exhausted
+ * the page-render profile in under 5 seconds -- nowhere near long enough for
+ * a cold start. Anything that follows a long gap in DB activity should pass
+ * this instead.
+ */
+export const BATCH_RETRY_DELAYS_MS = [2000, 5000, 10000, 20000, 30000];
 
 function isTransientConnectionError(err: unknown): boolean {
   if (!(err instanceof Error)) return false;
@@ -28,18 +44,22 @@ function isTransientConnectionError(err: unknown): boolean {
   );
 }
 
-export async function withDbRetry<T>(fn: () => Promise<T>, label: string): Promise<T> {
-  for (let attempt = 0; attempt <= DELAYS_MS.length; attempt++) {
+export async function withDbRetry<T>(
+  fn: () => Promise<T>,
+  label: string,
+  delays: number[] = DELAYS_MS
+): Promise<T> {
+  for (let attempt = 0; attempt <= delays.length; attempt++) {
     try {
       return await fn();
     } catch (err) {
-      if (!isTransientConnectionError(err) || attempt === DELAYS_MS.length) {
+      if (!isTransientConnectionError(err) || attempt === delays.length) {
         throw err;
       }
-      // Shorter backoff than the ingestion path's 2s/5s/10s: this one runs
-      // inside a page render, where a slow response is itself a failure.
-      await new Promise((r) => setTimeout(r, DELAYS_MS[attempt]));
-      console.log(`[db-retry] ${label} hit a transient connection error, retry ${attempt + 1}`);
+      console.log(
+        `[db-retry] ${label} hit a transient connection error, retry ${attempt + 1}/${delays.length} in ${delays[attempt]}ms`
+      );
+      await new Promise((r) => setTimeout(r, delays[attempt]));
     }
   }
   throw new Error("unreachable");

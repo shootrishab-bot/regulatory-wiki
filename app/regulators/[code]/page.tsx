@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ExternalLink } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowRight, Building2, ExternalLink, Layers } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -51,7 +57,16 @@ export default async function RegulatorDetailPage({ params }: { params: Params }
   const detail = await getRegulatorDetail(code.toUpperCase());
   if (!detail) notFound();
 
-  const { regulator, subjects, instrumentTypes, published, flagged } = detail;
+  const {
+    regulator,
+    subjects,
+    instrumentTypes,
+    published,
+    flagged,
+    siblings,
+    domainRegulators,
+    domainPublished,
+  } = detail;
   const recent = await listPublicEntries({ regulator: regulator.code, page: 1 });
 
   return (
@@ -92,6 +107,78 @@ export default async function RegulatorDetailPage({ params }: { params: Params }
       />
 
       <div className="space-y-8">
+        {/* Where this regulator sits: its domain, and the peers inside it. The
+            two facets the top nav can only offer as full lists. */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Link href={`/domains/${regulator.domain.id}`} className="group">
+            <Card className="h-full transition-colors group-hover:border-foreground/25 group-hover:bg-muted/40">
+              <CardHeader>
+                <div className="flex items-center gap-2.5">
+                  <Layers className="size-5 text-muted-foreground" aria-hidden />
+                  <CardTitle className="text-lg">{regulator.domain.name}</CardTitle>
+                </div>
+                <CardDescription className="text-sm">
+                  {domainRegulators} {domainRegulators === 1 ? "regulator" : "regulators"} &middot;{" "}
+                  {domainPublished.toLocaleString("en-IN")} published
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  The domain {regulator.code} belongs to.
+                </p>
+                <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium">
+                  Browse domain
+                  <ArrowRight
+                    className="size-4 transition-transform group-hover:translate-x-0.5"
+                    aria-hidden
+                  />
+                </span>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Card className="h-full">
+            <CardHeader>
+              <div className="flex items-center gap-2.5">
+                <Building2 className="size-5 text-muted-foreground" aria-hidden />
+                <CardTitle className="text-lg">Other regulators</CardTitle>
+              </div>
+              <CardDescription className="text-sm">
+                {siblings.length > 0
+                  ? `${siblings.length} more in ${regulator.domain.name}`
+                  : `None — ${regulator.code} is alone in ${regulator.domain.name}`}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {siblings.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {siblings.map((r) => (
+                    <Link key={r.code} href={`/regulators/${r.code}`} title={r.name}>
+                      <Badge
+                        variant="secondary"
+                        className="cursor-pointer px-3 py-1 text-sm transition-colors hover:bg-muted"
+                      >
+                        {r.code}
+                        <span className="ml-1.5 text-muted-foreground">
+                          {r.published.toLocaleString("en-IN")}
+                        </span>
+                      </Badge>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <Link
+                  href="/regulators"
+                  className="inline-flex items-center gap-1 text-sm font-medium"
+                >
+                  See all regulators
+                  <ArrowRight className="size-4" aria-hidden />
+                </Link>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
         <div className="grid gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader>

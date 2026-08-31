@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { getIssuingEntity } from "@/lib/issuing-entity";
 import type { EntryListItem } from "@/lib/queries";
 
 /**
@@ -40,12 +41,27 @@ export function UnverifiedDateBadge() {
   );
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  IN_FORCE: "In force",
-  DRAFT_CONSULTATION: "Draft / consultation",
-  AMENDED: "Amended",
-  SUPERSEDED_REPEALED: "Superseded / repealed",
-};
+/**
+ * Surfaces the real issuing entity (ISRO / IN-SPACe / NSIL / DOS) for
+ * regulators that bundle more than one real body under a single Regulator
+ * badge -- see lib/issuing-entity.ts for why this matters and why it's
+ * derived from sourceUrl rather than a stored field. Renders nothing when
+ * getIssuingEntity can't resolve one (every regulator that ISN'T a
+ * multi-entity bundle, or an external link), so this is inert everywhere
+ * except where it's actually needed.
+ */
+export function IssuingEntityBadge({ sourceUrl }: { sourceUrl: string | null | undefined }) {
+  const entity = getIssuingEntity(sourceUrl);
+  if (!entity) return null;
+  return (
+    <span
+      title={`Issuing entity: ${entity} (derived from the source link's domain)`}
+      className="inline-flex items-center rounded-md bg-sky-500/12 px-2 py-0.5 text-xs font-medium text-sky-700 ring-1 ring-sky-500/25 ring-inset dark:text-sky-300"
+    >
+      {entity}
+    </span>
+  );
+}
 
 /**
  * Subject and Instrument Type are different KINDS of fact -- what a document
@@ -78,16 +94,26 @@ export function InstrumentBadge({ name }: { name: string }) {
   );
 }
 
-export function StatusBadge({ status }: { status: string }) {
+/**
+ * Status is now a real per-regulator TaxonomyTag name (e.g. "In Force",
+ * DST's "Open / Accepting Applications"), not a fixed enum key -- so tone
+ * matches on substring rather than an exact enum value, the same way a
+ * human would eyeball "does this read as operative/open, or as a draft?"
+ * regardless of which regulator's exact wording it is. `name` is nullable:
+ * an entry can have no resolved Status tag (a genuine classification gap,
+ * flagged via needsReview) the same way Subject/Instrument Type already can.
+ */
+export function StatusBadge({ name }: { name: string | null }) {
+  if (!name) return null;
   const tone =
-    status === "IN_FORCE"
+    name.startsWith("In Force") || name.startsWith("Open")
       ? "border-emerald-500/40 text-emerald-700 dark:text-emerald-400"
-      : status === "DRAFT_CONSULTATION"
+      : name.startsWith("Draft")
         ? "border-amber-500/40 text-amber-700 dark:text-amber-400"
         : "";
   return (
     <Badge variant="outline" className={tone}>
-      {STATUS_LABELS[status] ?? status}
+      {name}
     </Badge>
   );
 }
@@ -120,9 +146,10 @@ export function EntryList({
               <span className="font-semibold text-foreground">
                 {e.sourceDocument.regulator.code}
               </span>
+              <IssuingEntityBadge sourceUrl={e.sourceDocument.sourceUrl} />
               <span>{formatDate(e.sourceDocument.publishedDate)}</span>
               {isUnverifiedDate(e.sourceDocument.publishedDate) && <UnverifiedDateBadge />}
-              <StatusBadge status={e.status} />
+              <StatusBadge name={e.statusTag?.name ?? null} />
             </div>
             <p className="mt-1.5 text-base leading-snug">{e.title}</p>
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
