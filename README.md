@@ -126,6 +126,12 @@ non-zero only if every regulator errored.
 It needs two repository secrets set under **Settings → Secrets and variables →
 Actions**: `DATABASE_URL` and `DEEPSEEK_API_KEY`.
 
+> **Expected on a fresh clone:** those secrets are deliberately not set in this
+> repository, so the scheduled run fails each morning until you add your own,
+> pointing at your own database and DeepSeek account. That failure is the
+> pending-setup signal, not a broken build — the job it runs is proven by
+> manual runs. Nothing else in the repo depends on it.
+
 ## Layout
 
 | Path | What lives there |
