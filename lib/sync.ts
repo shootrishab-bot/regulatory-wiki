@@ -267,6 +267,34 @@ export const REGULATORS: RegulatorSync[] = [
     blockedMarkers: [],
     hasBlockedDetection: false,
   },
+  // MERC: plain requests, no Playwright -- three open admin-ajax.php DataTables
+  // actions return Orders, Daily Orders and Hearings whole (~13.5k rows in
+  // three requests), plus ~40 HTML listing pages. merc_watcher.py re-scrapes
+  // everything on every run and writes merc_raw.json fresh; dedup against
+  // Postgres happens in syncRegulator() like every other regulator.
+  //
+  // Blocked detection is real but per-feed: _get() raises Blocked on
+  // 401/403/429, and scrape() catches it PER FEED, prints
+  // "[error] <feed>: HTTP 403 for <url>" (or "[warn] hub sub-page failed: ...
+  // (HTTP 403 for ...)") and carries on, exiting 0. So a partial block still
+  // yields usable output and is recorded as a note, and even a total block
+  // exits 0 with the marker in the log -- which syncRegulator() reports
+  // alongside the scrape rather than as "nothing new". "BLOCKED:" is the
+  // top-level exit-2 path. CPPP is deliberately NOT registered: its
+  // tender/corrigendum linking is unbuilt (see cppp-taxonomy-findings.md).
+  //
+  // FIRST RUN IS A BACKFILL, not a daily delta: only the 100-document taxonomy
+  // sample is in Postgres, so the first sync will try to classify ~20,600
+  // documents (most needing a PDF download) sequentially -- far beyond the
+  // workflow's 120-minute job budget. Run it deliberately, not from the cron.
+  {
+    code: "MERC",
+    watcher: "merc_watcher.py",
+    adapter: "run_merc_adapter.py",
+    normalizedJson: "data/merc_normalized.json",
+    blockedMarkers: ["BLOCKED:", "HTTP 401 for", "HTTP 403 for", "HTTP 429 for"],
+    hasBlockedDetection: true,
+  },
 ];
 
 export type SyncStatusValue = "OK" | "BLOCKED" | "ERROR" | "SKIPPED";

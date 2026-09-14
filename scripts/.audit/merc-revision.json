@@ -1,0 +1,329 @@
+{
+  "regulator": "MERC",
+  "version": "v1.1",
+  "previous_version": "v1.0",
+  "run_note": "v1.1 corrections derived from a REAL pipeline run, 2026-09-10: scrapers/merc_watcher.py scraped 20,740 real documents from merc.gov.in across 40 feeds, and a uniform random sample of 100 (seed 20260910) was classified against the live v1.0 taxonomy in Postgres. Unlike v1.0, which was built entirely from research, every change below cites what real documents did. Read scrapers/merc-taxonomy-findings.md for the full evidence. The headline finding: roughly 60% of what MERC actually publishes is procedural case management (48.2% hearing notices, 11.8% Daily Orders), and v1.0 had no Instrument Type for any of it.",
+  "add_tags": [
+    {
+      "facet": "Instrument Type",
+      "name": "Hearing Notice",
+      "definition": "A formal NOTICE issued by the Commission to the named Petitioner(s) and Respondent(s) in a numbered case, communicating the date and mode of a scheduled e-Hearing and the procedural directions for attending it -- including its rescheduling variants (Postponed Notice, Preponed Notice, Combined Notice) and live-streaming link notices. Distinct from Public Notice / Consultation Notice, which invites the general public to comment on a draft instrument; a Hearing Notice invites nobody to comment and directs named parties to appear. MERC publishes these in its Hearings / Cause List section and titles each one with the matter being heard, so a Hearings / Cause List document titled 'Petition of X seeking ...' is the Hearing Notice FOR that petition -- not the petition, not an Order, and not a Daily Order.",
+      "notes": "REAL, LARGEST SINGLE CLASS IN THE CORPUS: 9,995 of 20,740 real documents (48.2%). In the 100-document random sample, all 47 hearing documents were forced into a tag that does not describe them, and one homogeneous document class split THREE ways: 37 into Public Notice / Consultation Notice with Status Not Applicable, 9 into Order with Status In Force, and 1 into Public Notice with In Force. Mean confidence 0.715; 29 of the 47 (62%) flagged for review. The classifier's own reasons name the class correctly and unprompted ('This is a hearing notice for a petition seeking...', 'This is a hearing rescheduling notice ... a procedural administrative communication'), i.e. it identified them and had nowhere to file them. Document shape confirmed by reading the real PDFs: headed NOTICE, 'Before the Maharashtra Electricity Regulatory Commission', naming Petitioner(s)/Respondent(s), 'e-Hearing in this matter is scheduled on Thursday, 29th October, 2026 at 11.00 AM'. SECTION NAMED IN THE DEFINITION (2026-09-11), after Subject and Instrument Type definitions began reaching the classifier: title-only hearing rows titled with the petition itself drifted to Order, and then to Daily Order, because nothing told the model which MERC section each type is published in. Measured on the 5 real regressions (2 runs each): 5 of 5 back to Hearing Notice, all still flagged for review."
+    },
+    {
+      "facet": "Instrument Type",
+      "name": "Daily Order",
+      "definition": "A coram-signed order of the Commission recording the proceedings of a hearing and any interim directions issued at it, in a case that remains pending. Distinct from Order, which disposes of the petition. Includes the real Draft Daily Order variant MERC publishes ahead of finalisation. MERC publishes these in a separate Daily Orders section; a document from the Hearings / Cause List section is not a Daily Order unless its own title or text says it is one.",
+      "notes": "REAL: 2,448 of 20,740 documents (11.8%), published by MERC as its own separate feed. All 13 sampled Daily Orders were tagged Order (12 In Force, 1 wrongly Under Litigation / Stayed -- see the new litigation rule), mostly unflagged and at reasonable confidence -- a SILENT misfit, unlike Finding 1 which announced itself through low confidence. Confirmed from the real PDFs: 'CORAM: Valsa Nair Singh, Chairperson / Anand M. Limaye, Member / Surendra J. Biyani, Member ... Daily Order ... 1. Heard the Advocate for the Petitioner and Respondent.' Collapsing these into Order means a query for the Commission's decisions in a case returns every adjournment record alongside the decision with no way to separate them. SECTION NAMED IN THE DEFINITION (2026-09-11) -- see the Hearing Notice note: without it, title-only Hearings / Cause List rows were being read as Daily Orders."
+    },
+    {
+      "facet": "Instrument Type",
+      "name": "Report",
+      "definition": "A substantive report or periodic compliance-data publication other than the Annual Report -- sector reports on distribution, transmission and generation, consultant studies, and the quarterly Standards of Performance compliance data licensees file with the Commission.",
+      "notes": "REAL: 416 Standards of Performance compliance-data rows plus 94 sector-report rows (2.5% combined). v1.0 offered only Annual Report. The one SOP row drawn into the sample was classified twice, once before and once after a scraper title fix, and landed differently each time -- Annual Report at confidence 0.40 (the lowest Instrument Type assignment in the run; the classifier's own reason called it 'a quarterly performance data report'), then Order at 0.60. Both are wrong, and the fact that the two passes disagreed is itself the evidence: with no Report tag available there was no stable answer to converge on."
+    },
+    {
+      "facet": "Instrument Type",
+      "name": "Licence",
+      "definition": "A transmission, distribution or trading licence granted by the Commission to a named entity, as a document in its own right -- distinct from the Order that grants it.",
+      "notes": "REAL, and structurally important: 84 rows in MERC's own Licences Issued section, plus licences attached directly to the granting Order. 184 of 4,056 Order rows carry a second attachment, and for licensing matters that second attachment is the licence itself (real example: Case No. 49 of 2026 attaches both 'MERC Order Case No. 49 of 2026' and 'Transmission Licence 06 of 2026'). Without this tag the licence is indistinguishable from the order that granted it. NOT reached by the 100-document sample (0.4% of the corpus) -- proposed from confirmed corpus presence, not from a demonstrated misclassification."
+    },
+    {
+      "facet": "Instrument Type",
+      "name": "Tender / RFP",
+      "definition": "A procurement tender, request for proposal, auction notice, or corrigendum to one, issued by MERC for its own administrative needs.",
+      "notes": "REAL: 279 rows (1.3%) in MERC's own Tenders section -- real examples include 'Request for Proposal for Hiring One New Toyota Innova Hycross GX (O)' and 'Auction Notice for sale of Two Fish Tanks'. Structurally the same role as DOS-ISRO's own Tender / RFP tag, added there for the same reason. NOT reached by the 100-document sample."
+    },
+    {
+      "facet": "Instrument Type",
+      "name": "Notification",
+      "definition": "An administrative notification constituting, reconstituting, or superseding a committee or body, and State/Central Government notifications MERC republishes -- distinct from Regulations (subordinate legislation) and from Order (a case decision).",
+      "notes": "REAL: 157 committee rows (M-DNAC constitution and reconstitution notifications, State Advisory Committee) plus 32 rows in MERC's own 'Rules by Notification' section. Real example: 'Notification dated 28 September, 2021 for Re-constitution of M-DNAC by superseding Notification dated 27 March 2019' -- a document that both supersedes and is superseded, which the v1.0 vocabulary cannot express. NOT reached by the 100-document sample."
+    },
+    {
+      "facet": "Instrument Type",
+      "name": "Minutes of Meeting",
+      "definition": "The minutes of a State Advisory Committee or M-DNAC meeting.",
+      "notes": "REAL: 43 SAC meeting rows plus M-DNAC minutes. The single SAC row in the sample was tagged Order at confidence 0.60 -- clearly wrong; minutes decide nothing."
+    },
+    {
+      "facet": "Instrument Type",
+      "name": "Recruitment Notice",
+      "definition": "A vacancy advertisement, empanelment notice, or recruitment result published by the Commission for its own staffing.",
+      "notes": "REAL: 158 rows (0.8%) in MERC's own Vacancies section -- real examples include 'MERC invites Application ... for Two (2) Regulatory Officer (Legal) on Consultancy basis' and 'Advertisement for Empanelment of Advocates on Record APTEL High Court'. Pairs with the widened Institutional Governance & Administration Subject below. NOT reached by the 100-document sample."
+    }
+  ],
+  "revise_tags": [
+    {
+      "facet": "Status",
+      "name": "Not Applicable",
+      "definition": "The Status facet does not meaningfully describe this content -- press releases, FAQs, recruitment notices, minutes, RTI replies, and PROCEDURAL CASE-MANAGEMENT COMMUNICATIONS such as Hearing Notices, which are spent one-time communications about a calendar event rather than instruments with a legal lifecycle.",
+      "notes": "REVISED v1.1 from real data. Not Applicable was the single largest Status value in the 100-document sample (50 of 100), on a v1.0 definition naming only 'press releases, FAQs, and other non-instrument content' -- while only 4 of the 100 documents were press releases or FAQs. The v1.0 definition gave the classifier no basis for the other 46, so it inferred Status from whichever Instrument Type it had already guessed: the 36 hearing documents it filed as Public Notice took Not Applicable, and the 11 it filed as Order took In Force. Identical documents, opposite Status. See the new Tagging Guide rule pinning both procedural cases explicitly."
+    },
+    {
+      "facet": "Subject",
+      "name": "Institutional Governance & Administration",
+      "definition": "Internal governance and administration of MERC -- Commission composition (Chairperson/Members), appointments, organisational matters, advisory-committee constitution and minutes, the Commission's own procurement, and its own staff recruitment.",
+      "notes": "REVISED v1.1 from real data. The v1.0 definition covered only composition/appointments/organisational matters, leaving 279 real tender rows and 158 real recruitment rows (2.1% of the corpus combined) with no Subject that admits them. Widening this Subject is deliberately preferred over adding a separate Procurement Subject: MERC's own procurement is a handful of vehicle-hire and office contracts, not a regulatory function, and a dedicated Subject would imply a significance the real corpus does not support."
+    },
+    {
+      "facet": "Subject",
+      "name": "Public Communication & Outreach",
+      "definition": "Press releases and institutional announcements with no operative regulatory content of their own -- genuinely informational communication. NOT the default for anything published through MERC's Press Release section: most of that section is statutory notices inviting objections on specific licence or tariff applications, which take the Subject of the underlying matter.",
+      "notes": "REVISED v1.1 from real data. This tag fired on 0 of 100 sampled documents, and the correct reading is NOT that it is dead. The three sampled documents from MERC's own Press Release feed went to Licensing, because their real content is 'Inviting Suggestions / Objections on Application of the Jalna Power Transmission Limited...' -- statutory notices in a licensing matter published through the press-release channel and as newspaper advertisements. The v1.0 definition ('no operative regulatory content of their own') correctly refused them. The tag is kept and its real, much smaller population is now stated. See the new Tagging Guide rule."
+    },
+    {
+      "facet": "Instrument Type",
+      "name": "Public Notice / Consultation Notice",
+      "definition": "A notice inviting stakeholder comments on a draft Regulation, a draft Order, or a specific pending application (a licence application, a tariff petition) -- addressed to the public at large. Distinct from a Hearing Notice, which is addressed to the named parties in a numbered case and directs them to appear rather than inviting comment.",
+      "notes": "REVISED v1.1 from real data. In the v1.0 run this tag absorbed 40 of 100 sampled documents, 36 of them hearing notices it does not describe. The boundary against the new Hearing Notice tag is now stated explicitly in the definition, and the tag is at the same time widened to admit what it genuinely does cover -- notices inviting objections on a specific pending licence or tariff application, which are real, numerous (MERC's Press Release and What's New feeds), and were not contemplated by the v1.0 wording's 'draft Regulation or draft Order' only."
+    },
+    {
+      "facet": "Instrument Type",
+      "name": "Order",
+      "definition": "A real, operative case-specific Order disposing of a petition -- tariff determinations, RPO compliance orders, competition/open-access matters. MERC's core adjudicatory output, structurally the closest equivalent to a CCI Order. Does NOT cover a Daily Order, which records hearing proceedings in a case that remains pending.",
+      "notes": "REVISED v1.1 from real data. The v1.0 definition already said 'disposing of a petition', but with no Daily Order tag available all 13 sampled Daily Orders landed here anyway, unflagged. The exclusion is now explicit rather than implied."
+    },
+    {
+      "facet": "Instrument Type",
+      "name": "Annual Report",
+      "definition": "MERC's own annual administration report and annual accounts report. Does NOT cover periodic or quarterly compliance data, or sector studies -- those are Report.",
+      "notes": "REVISED v1.1 from real data. With no Report tag available, this tag was the classifier's fallback for periodic data it had nowhere else to file. Across the run's two passes a single QUARTERLY Standards of Performance data file was tagged Annual Report (confidence 0.40, the lowest Instrument Type assignment in the run) and then, after a scraper title fix, Order (0.60). Both are wrong; the disagreement between passes is itself the evidence that no stable answer existed. MERC's 47 real Annual Report rows and 20 Annual Account Report rows are genuine and this tag keeps them."
+    },
+    {
+      "facet": "Status",
+      "name": "Under Litigation / Stayed",
+      "definition": "THIS instrument is under appeal to the Appellate Tribunal for Electricity (APTEL/ATE) or a higher court, or has itself been stayed by a granted stay order. Not triggered by a document that merely narrates litigation concerning some other instrument, and not by a stay that has only been applied for.",
+      "notes": "REVISED v1.1 from real data. See the new Tagging Guide rule and Finding 4 in scrapers/merc-taxonomy-findings.md: the single time this tag fired in 100 real documents it fired on a Daily Order whose own text says 'no stay has been granted by the Supreme Court', about an appeal against a DIFFERENT instrument (the ATE's judgment). Confidence 0.85, auto-accepted, unflagged."
+    },
+    {
+      "facet": "Status",
+      "name": "In Force",
+      "definition": "The instrument is currently operative and unrevoked/unstayed -- a currently valid Regulation, a final Order not under appeal, or a Daily Order whose interim directions bind the parties until the final Order is issued.",
+      "notes": "REVISED v1.1 from real data, and for a reason worth recording about HOW this taxonomy reaches the pipeline. A first v1.1 validation pass split Daily Orders 9 Not Applicable / 3 In Force even though the new Tagging Guide rule pins them to In Force -- because the classification prompt is built from tag NAMES and DEFINITIONS only, and never sees the Tagging Guide sheet. The Hearing Notice half of the same rule worked (32 of 32 correct) purely because it had also been written into the Not Applicable definition. Any rule that lives only in the Tagging Guide is documentation for humans and has no effect on classification; a rule that must bind the pipeline has to appear in a definition."
+    }
+  ],
+  "add_rules": [
+    {
+      "rule": "A document from MERC's hearings/cause-list feed is tagged Instrument Type: Hearing Notice and Status: Not Applicable -- NOT Public Notice / Consultation Notice, and NOT Order.",
+      "explanation": "These are the largest single class of document MERC publishes (48.2% of a real 20,740-document corpus). A Hearing Notice is addressed to named Petitioner(s) and Respondent(s) in a numbered case and directs them to appear; it invites no comment from anyone and decides nothing. Its Status is Not Applicable because it is a spent, one-time communication about a calendar event with no ongoing legal state -- a notice for a hearing that was later adjourned was still validly issued.",
+      "example": "'NOTICE In 226/MP/2024 ... e-Hearing in this matter is scheduled on Thursday, 29th October, 2026 at 11.00 AM' -> Instrument Type: Hearing Notice, Status: Not Applicable, Subject: taken from the underlying petition (here Renewable Energy & RPO)."
+    },
+    {
+      "rule": "A Daily Order is tagged Instrument Type: Daily Order and Status: In Force -- not Order, and not Not Applicable.",
+      "explanation": "A Daily Order is a real coram-signed order of the Commission whose interim directions bind the parties until the final Order, so unlike a Hearing Notice it does have an operative legal state. But it does not dispose of the petition, so it is not an Order either. This is the pairing that keeps a query for 'the Commission's decisions in Case No. N' from returning every adjournment record.",
+      "example": "'CORAM: ... Daily Order ... 1. Heard the Advocate for the Petitioner and Respondent.' in Case No. 66 of 2023 -> Instrument Type: Daily Order, Status: In Force. A document titled 'Draft Daily Order' takes Instrument Type: Daily Order with Status: Draft / Under Consultation."
+    },
+    {
+      "rule": "A document published in MERC's Press Release section that invites suggestions or objections on a specific licence application or tariff petition takes the Subject of the underlying matter (Licensing, Tariff Determination, and so on), NOT Public Communication & Outreach, and Instrument Type: Public Notice / Consultation Notice, NOT Press Release.",
+      "explanation": "MERC publishes statutory public notices through the same channel as genuine press releases, including as paid newspaper advertisements. The channel is not the instrument. Public Communication & Outreach is reserved for announcements with no operative regulatory content of their own, and a notice that opens a statutory objection window plainly has such content.",
+      "example": "'Inviting Suggestions / Objections on Application of the Jalna Power Transmission Limited (JPTL)' -> Subject: Licensing, Instrument Type: Public Notice / Consultation Notice. A genuine outreach item such as a consumer-awareness announcement -> Subject: Public Communication & Outreach, Instrument Type: Press Release."
+    },
+    {
+      "rule": "A Marathi-language version of a document also published in English is kept, not dropped, and carries the SAME Subject, Instrument Type and Status as its English original. Where both exist, classify from the English text.",
+      "explanation": "905 real rows (4.4% of the corpus) are Marathi versions of an English document -- 385 hearing notices, 243 press releases, 77 draft regulations. Marathi is a legally published version for a large part of MERC's real audience, so dropping it would silently remove the operative text many readers actually rely on. Classifying from it directly is what produced several of the run's lowest-confidence results, because the extracted Devanagari text is what the classifier then had to work from.",
+      "example": "'Tata Power-T MTR 2025 Petition_Exec Summary-Marathi [Case No. 217 of 2022]' -> same tags as the English executive summary for Case No. 217 of 2022, classified from the English text."
+    },
+    {
+      "rule": "Do NOT map MERC's own hearing `status` column onto the Status facet, even though it is a real, source-provided field.",
+      "explanation": "It is not the same kind of fact as MTCTE's Active/Expired column: MTCTE's describes an instrument's lifecycle, MERC's describes a hearing's calendar state. It is also not a controlled vocabulary -- the live feed carries 91 distinct values across 7,071 rows, most typed free-hand per row, including 'Schedule' alongside 'Scheduled', 'Reschedule' alongside 'Rescheduled', 24 rows reading 'Rescheduled on Friday 20/October/2023 10:30 AM', and the literal values '5' and '0'. This is recorded as a rule so nobody later 'fixes' the pipeline by wiring it up.",
+      "example": "A hearing row whose status column reads 'Completed' (6,085 rows do) still takes Status: Not Applicable, because the notice's own legal state is unaffected by whether the hearing it announced has happened."
+    },
+    {
+      "rule": "Status: Under Litigation / Stayed requires that (a) the appeal or stay concerns THIS document, not some other instrument the document merely discusses, and (b) a stay has actually been GRANTED, not merely applied for.",
+      "explanation": "This is the self-referential discipline the classification rules already apply to Amended and Superseded ('applies ONLY when the document ITSELF has been changed or replaced'), which v1.0's Status rule never extended to litigation. MERC is the regulator where it bites: Daily Orders routinely recite the parties' submissions about proceedings before the ATE, the Supreme Court and the High Courts, so a document narrating real, correctly-cited litigation about a DIFFERENT instrument is common. v1.0's existing rule guards only against inferring litigation from an order's size or the licensee's prominence, and says nothing about whose litigation counts.",
+      "example": "REAL FAILURE from the 2026-09-10 run: the Daily Order in Case No. 44 of 2014 was tagged Under Litigation / Stayed at confidence 0.85, auto-accepted with no review flag. Its own text reads: 'MSEDCL ... has challenged the Judgment of the ATE dated 22 April, 2015 ... before the Supreme Court in Civil Appeal No. 5708 of 2015 ... MSEDCL has also filed Interim Application before Supreme Court to stay the Judgment of the ATE, however NO STAY HAS BEEN GRANTED by the Supreme Court.' The litigation is about the ATE's judgment, not this Daily Order, and no stay exists. Correct tags: Instrument Type: Daily Order, Status: In Force."
+    }
+  ],
+  "add_notes": [
+    {
+      "topic": "CORRECTED: real archive depth is 2000, not 2002",
+      "note": "The v1.0 Schema Note asked for exactly this check ('worth checking during scraper-build research how far back merc.gov.in's own online archive actually goes, since institutional age does not guarantee the same digitized depth'). Answered from the real feed: 6 real Orders from 2000 and 21 from 2001, then continuous coverage every year through 2026 -- two years deeper than the research had confirmed. Volume is not flat: 2018 (422) and 2019 (393) are roughly double the surrounding years."
+    },
+    {
+      "topic": "CORRECTED: the corpus is majority procedural, which v1.0 could not see",
+      "note": "v1.0 was built from research into MERC's Orders, Regulations, Draft Orders and Corrigendum Orders -- all of which are real and all of which the taxonomy handled. What research could not see without enumerating the corpus is its shape: 48.2% hearing notices, 11.8% Daily Orders, 2.0% Standards of Performance compliance data. Roughly 60% of what MERC publishes is procedural case management for which v1.0 had no Instrument Type at all. Final Orders, the class the whole taxonomy was designed around, are 19.8%. This is the single most important correction in v1.1 and the reason for four of its eight new Instrument Types."
+    },
+    {
+      "topic": "merc.gov.in is unusually cheap to scrape -- three requests for 13,500 records",
+      "note": "Three of MERC's DataTables are backed by open, unauthenticated WordPress admin-ajax.php actions that each return the ENTIRE table as one JSON payload with no pagination and no nonce (getpostsfororderdatatables, getpostsfordailyordersdatatables, getpostsfordatatables). No Playwright and no pagination loop is needed for 65% of the corpus. The /wp-json/ REST API, by contrast, is confirmed blocked (403). Worth knowing before anyone plans capacity for a state-regulator rollout: MERC's real cost is nothing like CPPP's."
+    },
+    {
+      "topic": "4.4% of the corpus is bilingual duplication",
+      "note": "905 real rows are Marathi versions of documents also published in English, concentrated in hearing notices (385), press releases (243) and draft regulations (77); 784 further rows are explicitly labelled English. This roughly doubles the document count for the affected feeds without adding distinct instruments, and it is a real storage- and dedup-planning fact that v1.0 did not record. See the new Tagging Guide rule for how they are tagged."
+    },
+    {
+      "topic": "The APTEL cross-reference remains unbuilt and untested",
+      "note": "The v1.0 Schema Note proposes building a real MERC-to-APTEL cross-reference once both scrapers exist, and calls it the first case in this project where an Under Litigation / Stayed status could be backed by a real linked judgment rather than a statutory possibility. Nothing in this run supports or refutes that: Under Litigation / Stayed fired on 0 of 100 documents, which is the CORRECT outcome under the v1.0 Tagging Guide's own discipline (never infer an appeal without real evidence, and no sampled document carried any). The proposal stands, still unbuilt."
+    },
+    {
+      "topic": "7% of PDFs fail text extraction; 149 files are not PDFs at all",
+      "note": "7 of the 100 sampled documents were flagged text_extraction_failed and classified from title alone. Two contributing causes are confirmed: 149 rows in the corpus point at non-PDF files (89 .zip, 39 .jpg, 8 .png, 7 .xlsx, 6 .jpeg), which pdf-parse cannot read by construction, and an unmeasured share of older PDFs are scans with no text layer. The adapter passes a correct file_extension_hint so the first case is distinguishable downstream; the second would need OCR, which this pipeline does not have."
+    },
+    {
+      "topic": "What v1.1 still has NOT tested",
+      "note": "A 100-document uniform random sample cannot reach a tag whose real corpus share is below roughly 1%. Corrigendum Order, Draft Order, Act, FAQ, and the Superseded / Amended / Repealed / Under Litigation Status values all fired zero times, and this document should not be read as having validated them. Corrigendum Order and Repealed in particular are confirmed PRESENT in the corpus (20 rows carry MERC's own literal CORRIGENDUM ORDER category; 82 rows sit in MERC's own Repealed Regulations and Repealed Guidelines sections) and simply were not drawn. Four of the eight new Instrument Types in v1.1 (Licence, Tender / RFP, Notification, Recruitment Notice) are likewise proposed from confirmed corpus presence rather than from a demonstrated misclassification, and are labelled as such in their Notes."
+    },
+    {
+      "topic": "A Tagging Guide rule does not reach the classifier unless it is also in a tag definition",
+      "note": "Measured, not assumed. The v1.1 rule pinning Hearing Notice to Not Applicable and Daily Order to In Force worked on its first half (32/32) and failed on its second (3/12), because the first half had also been written into the Not Applicable DEFINITION and the second had not. lib/ingest.ts composes its prompt from tag names and definitions only; it never reads the Tagging Guide sheet. Any rule that must bind the pipeline has to live in a definition. This is not MERC-specific -- several other regulators' workbooks in this project carry Tagging Guide rules that are, on this evidence, currently inert, and that is worth auditing separately."
+    },
+    {
+      "topic": "PIPELINE DEFECT FOUND AND FIXED (all regulators): Subject and Instrument Type definitions were never sent to the classifier",
+      "note": "Found during the parallel CPPP run on the same day, and recorded here because it explains which of v1.1's MERC fixes worked and why. lib/ingest.ts built its prompt from a bare list of tag NAMES for Subject and Instrument Type; only Status sent definitions. So: MERC's new Hearing Notice and Daily Order tags worked immediately because their NAMES are self-describing, and the Not Applicable and In Force fixes worked because those are STATUS definitions, which were already being sent. Nothing that depended on a Subject or Instrument Type definition had ever had any effect -- for any regulator in this project. Fixed in renderTagSection(), symmetrically with Status. See scrapers/cppp-taxonomy-findings.md Finding 7 for the measurement that caught it (a definition change that produced byte-identical output with identical confidences)."
+    }
+  ],
+  "dataset_note": "REAL classified documents from the 2026-09-10 runs. Each row is an actual merc.gov.in document that went through scrape -> normalize -> classify -> Postgres, and the Notes column gives BOTH what v1.0 assigned it and what v1.1 assigns the same document, with the real confidences. Unlike the v1.0 Dataset sheet, which listed documents confirmed by research, nothing here is asserted from research -- it is parsed back out of the run logs.",
+  "changelog": [
+    {
+      "change": "ADDED Instrument Type: Hearing Notice",
+      "evidence": "48.2% of the real 20,740-document corpus (9,995 rows) and 47 of the 100 sampled documents. Under v1.0 all 47 were forced into a tag that does not describe them and split three ways, mean confidence 0.715, 62% flagged. Under the final v1.1 (re-measured 2026-09-14): 43 of the 47 hearing-feed rows take Hearing Notice, every one of them with Status Not Applicable, at 0.82 mean confidence."
+    },
+    {
+      "change": "ADDED Instrument Type: Daily Order",
+      "evidence": "11.8% of the corpus (2,448 rows), 13 of 100 sampled. Under v1.0 all 13 were tagged Order, mostly unflagged -- a silent misfit against v1.0's own 'disposing of a petition' wording. Real PDFs confirm a coram-signed procedural order in a still-pending case. The corpus also contains real 'Draft Daily Order' documents v1.0 cannot express."
+    },
+    {
+      "change": "ADDED Instrument Type: Report",
+      "evidence": "416 SOP compliance-data rows plus 94 sector-report rows. The one sampled SOP row was tagged Annual Report (0.40) in one v1.0 pass and Order (0.60) in the next -- the disagreement between passes is the evidence that no stable answer existed."
+    },
+    {
+      "change": "ADDED Instrument Types: Licence, Tender / RFP, Notification, Minutes of Meeting, Recruitment Notice",
+      "evidence": "84 / 279 / 189 / 43+ / 158 real rows respectively. Minutes of Meeting was drawn into the sample and fires correctly under v1.1 (v1.0 had tagged the SAC minutes as an Order). Licence fired once in the 09-11 pass but NOT in the 2026-09-14 re-run, where that same document reclassified to Order at 0.55 -- one document is too thin to call the tag validated, so it joins Notification, Recruitment Notice and Tender / RFP as proposed from confirmed corpus presence but untested, and says so in its Notes."
+    },
+    {
+      "change": "REVISED Status: Not Applicable -- now names procedural case-management communications",
+      "evidence": "50 of 100 sampled documents took Not Applicable under a v1.0 definition naming only press releases, FAQs and 'other non-instrument content', while only 4 of the 100 were press releases or FAQs."
+    },
+    {
+      "change": "REVISED Status: In Force -- now names Daily Orders explicitly",
+      "evidence": "Not a wording preference. The first v1.1 pass split Daily Orders 9 Not Applicable / 3 In Force even though the new Tagging Guide rule pins them to In Force, because lib/ingest.ts builds its prompt from tag names and definitions only and NEVER reads the Tagging Guide sheet. After the rule was moved into this definition: Daily Order -> In Force, 14 of 14."
+    },
+    {
+      "change": "REVISED Status: Under Litigation / Stayed -- the litigation must concern THIS document, and the stay must be granted",
+      "evidence": "The single time it fired in 100 real documents it was wrong: a Daily Order whose own text reads 'no stay has been granted by the Supreme Court', about an appeal against the ATE's judgment rather than against itself. Confidence 0.85, auto-accepted, unflagged. Under v1.1 it fires zero times."
+    },
+    {
+      "change": "REVISED Instrument Type: Public Notice / Consultation Notice -- boundary against Hearing Notice stated, and widened to cover notices on specific pending applications",
+      "evidence": "Absorbed 42 of 100 sampled documents under v1.0, 37 of them hearing notices. Under v1.1 it holds 7 -- the documents that genuinely are public consultation notices."
+    },
+    {
+      "change": "REVISED Instrument Type: Order -- Daily Order exclusion made explicit",
+      "evidence": "v1.0 already said 'disposing of a petition', but with no alternative tag available all 13 sampled Daily Orders landed here regardless."
+    },
+    {
+      "change": "REVISED Instrument Type: Annual Report -- quarterly and periodic data excluded",
+      "evidence": "Became the classifier's fallback for a quarterly SOP data file at confidence 0.40."
+    },
+    {
+      "change": "REVISED Subject: Institutional Governance & Administration -- widened to cover MERC's own procurement and recruitment",
+      "evidence": "279 tender rows plus 158 recruitment rows (2.1% of the corpus) had no Subject that admitted them. Widening this Subject was preferred over adding one: MERC's own procurement is vehicle hire and office contracts, not a regulatory function."
+    },
+    {
+      "change": "REVISED Subject: Public Communication & Outreach -- kept, with its real (much smaller) population stated",
+      "evidence": "Fired 0 of 100 in every pass. It correctly refused MERC's press-release feed, which is really statutory notices with operative content. The definition was doing its job; the feed name was misleading. Not deprecated."
+    },
+    {
+      "change": "ADDED 6 Tagging Guide rules",
+      "evidence": "Hearing Notice tagging; Daily Order vs final Order; press-release-channel Subject; Marathi bilingual versions (4.4% of the corpus); do NOT map the site's own 91-value free-text hearing status column; self-referential litigation."
+    },
+    {
+      "change": "ADDED 8 Schema Notes",
+      "evidence": "Corpus is ~60% procedural; archive depth is 2000 not 2002 (answering v1.0's own open question); three admin-ajax endpoints return 13,500 records in three requests; 4.4% bilingual duplication; the APTEL cross-reference is still unbuilt; 7% PDF extraction failure and 149 non-PDF files; a Tagging Guide rule is inert unless it is also in a tag definition; an explicit list of what v1.1 still has NOT tested."
+    },
+    {
+      "change": "MEASURED RESULT of applying v1.1 to the same 100 documents",
+      "evidence": "RE-MEASURED 2026-09-14 against the final v1.1 wording, re-classifying the same 100 documents from scratch. Flagged for review 40 -> 21 (-48%). low_confidence flags 39 -> 21 (-46%). Instrument Types firing 5 of 10 -> 9 of 18. The two largest tags' combined share 89% -> 68%. Hearing notices went from three inconsistent tag pairs to one: 43 of the 47 hearing-feed rows take Hearing Notice and all 43 of those take Not Applicable. Daily Orders went from three tag pairs to one, 14 of 14 In Force. Mean confidence rose on every Subject tag (v1.0 range 0.64-0.86, final v1.1 range 0.76-0.93). text_extraction_failed stayed at exactly 7 across every pass, as it should -- that is a PDF problem, not a taxonomy problem. EARLIER DRAFTS OF THIS ROW quoted 17 flags, 13 low_confidence, 10 of 18 types and 40/40 hearing notices; those came from a pass made BEFORE the 2026-09-11 definition changes were seeded, and are superseded by the numbers above."
+    }
+  ],
+  "dataset": [
+    {
+      "date": "2018-01-23",
+      "title": "Postponed Notice — Petition of Bhulani Steel against Maharashtra State",
+      "instrument": "Hearing Notice",
+      "subject": "Standards of Performance & Consumer Protection",
+      "status": "Not Applicable",
+      "notes": "REAL hearing notice, the largest document class MERC publishes (48.2% of the corpus). v1.0 had no tag for it. v1.0 assigned: Public Notice / Consultation Notice / Standards of Performance & Consumer Protection / Not Applicable (confidence 0.70, FLAGGED). v1.1 assigns: Hearing Notice / Standards of Performance & Consumer Protection / Not Applicable (confidence 0.85). [CHANGED by v1.1]"
+    },
+    {
+      "date": "2021-01-05",
+      "title": "Petition of Guardian Castings Pvt. Ltd. (GCPL) seeking Review under Se",
+      "instrument": "Hearing Notice",
+      "subject": "Tariff Determination",
+      "status": "Not Applicable",
+      "notes": "REAL hearing notice of the SAME class as the row above -- but v1.0 sent this one to Order instead. The two rows together are the evidence that v1.0 split one document class across two Instrument Types and two Statuses. v1.0 assigned: Order / Regulatory Framework & Rulemaking / In Force (confidence 0.60, FLAGGED). v1.1 assigns: Hearing Notice / Tariff Determination / Not Applicable (confidence 0.55, FLAGGED). [CHANGED by v1.1]"
+    },
+    {
+      "date": "2015-08-27",
+      "title": "Daily Order 1441198937646 [Case No. 44 of 2014]",
+      "instrument": "Daily Order",
+      "subject": "Competition & Open Access",
+      "status": "In Force",
+      "notes": "REAL FAILURE, and the sharpest one in the run. The PDF states 'no stay has been granted by the Supreme Court', and the appeal it recounts concerns the ATE's judgment, not this document -- yet v1.0 auto-accepted Under Litigation / Stayed with no review flag. Drove the new self-referential litigation rule. v1.0 assigned: Order / Competition & Open Access / Under Litigation / Stayed (confidence 0.85). v1.1 assigns: Daily Order / Competition & Open Access / In Force (confidence 0.95). [CHANGED by v1.1]"
+    },
+    {
+      "date": "2025-12-02",
+      "title": "Reserved for Order Statement [Case No. 12 & 99 of 2024 & 220 & 226 of",
+      "instrument": "Daily Order",
+      "subject": "Institutional Governance & Administration",
+      "status": "In Force",
+      "notes": "REAL Daily Order (11.8% of the corpus). v1.0 tagged it Order, unflagged -- a SILENT misfit, since Order is defined as disposing of a petition and a Daily Order does not. v1.0 assigned: Order / Institutional Governance & Administration / In Force (confidence 0.60, FLAGGED). v1.1 assigns: Daily Order / Institutional Governance & Administration / In Force (confidence 0.60, FLAGGED). [CHANGED by v1.1]"
+    },
+    {
+      "date": "(no date on source)",
+      "title": "Q3 — SEZ Biotech – 1: Standards of Performance of Distribution License",
+      "instrument": "Report",
+      "subject": "Standards of Performance & Consumer Protection",
+      "status": "In Force",
+      "notes": "REAL quarterly Standards of Performance compliance data filed by a licensee. With only Annual Report available, v1.0 had nowhere correct to put it. v1.0 assigned: Order / Standards of Performance & Consumer Protection / In Force (confidence 0.60, FLAGGED). v1.1 assigns: Report / Standards of Performance & Consumer Protection / In Force (confidence 0.90). [CHANGED by v1.1]"
+    },
+    {
+      "date": "2011-06-24",
+      "title": "18th SAC Meeting",
+      "instrument": "Minutes of Meeting",
+      "subject": "Institutional Governance & Administration",
+      "status": "Not Applicable",
+      "notes": "REAL minutes of a State Advisory Committee meeting. v1.0 tagged them Order -- minutes decide nothing. v1.0 assigned: Order / Institutional Governance & Administration / Not Applicable (confidence 0.60, FLAGGED). v1.1 assigns: Minutes of Meeting / Institutional Governance & Administration / Not Applicable (confidence 0.95). [CHANGED by v1.1]"
+    },
+    {
+      "date": "2014-04-11",
+      "title": "Petition filed by M/s Pulgaon Cotton Mills Limited, seeking redressal",
+      "instrument": "Order",
+      "subject": "Competition & Open Access",
+      "status": "In Force",
+      "notes": "REAL final Order, correctly tagged by BOTH versions at high confidence. Included so the Dataset shows what v1.0 gets right, not only where it fails: the Order/Subject core of the taxonomy always worked. v1.0 assigned: Order / Competition & Open Access / In Force (confidence 0.95). v1.1 assigns: Order / Competition & Open Access / In Force (confidence 0.95). [unchanged in v1.1]"
+    },
+    {
+      "date": "2018-11-01",
+      "title": "RTI Appeal No. 10 of 2017 — Shri. Anil Vedvyas Galgali",
+      "instrument": "RTI Response / Disclosure",
+      "subject": "Public Information & Transparency",
+      "status": "Not Applicable",
+      "notes": "REAL RTI reply, correctly tagged by both versions -- the highest-confidence Instrument Type in the run. v1.0's RTI handling needed no change. v1.0 assigned: RTI Response / Disclosure / Public Information & Transparency / Not Applicable (confidence 0.85). v1.1 assigns: RTI Response / Disclosure / Public Information & Transparency / Not Applicable (confidence 0.90). [unchanged in v1.1]"
+    },
+    {
+      "date": "(no date on source)",
+      "title": "MERC (Renewable Purchase Obligation, its Compliance and Implementation",
+      "instrument": "Regulations",
+      "subject": "Renewable Energy & RPO",
+      "status": "In Force",
+      "notes": "REAL Regulations, correctly tagged by both versions. v1.0 assigned: Regulations / Renewable Energy & RPO / In Force (confidence 0.95). v1.1 assigns: Regulations / Renewable Energy & RPO / In Force (confidence 0.97). [unchanged in v1.1]"
+    },
+    {
+      "date": "2026-03-13",
+      "title": "Inviting Suggestions/Objections on Velgaon Power Transmission Limited’",
+      "instrument": "Public Notice / Consultation Notice",
+      "subject": "Licensing",
+      "status": "Not Applicable",
+      "notes": "REAL statutory notice published through MERC's Press Release channel. Both versions correctly refused Public Communication & Outreach (the document has real operative content) and took the underlying matter's Subject. Drove the new press-release rule. v1.0 assigned: Public Notice / Consultation Notice / Licensing / Not Applicable (confidence 0.75). v1.1 assigns: Public Notice / Consultation Notice / Licensing / Not Applicable (confidence 0.85). [unchanged in v1.1]"
+    },
+    {
+      "date": "2023-01-25",
+      "title": "Tata Power-T MTR 2025 Petition_Exec Summary-Marathi [Case No. 217 of 2",
+      "instrument": "Order",
+      "subject": "Tariff Determination",
+      "status": "In Force",
+      "notes": "REAL Marathi-language version of an English document -- 4.4% of the corpus, classified from extracted Devanagari text. Drove the new bilingual rule. v1.0 assigned: Order / Tariff Determination / In Force (confidence 0.85). v1.1 assigns: Order / Tariff Determination / In Force (confidence 0.72, FLAGGED). [unchanged in v1.1]"
+    }
+  ]
+}

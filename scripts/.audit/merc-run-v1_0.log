@@ -1,0 +1,140 @@
+Loaded 20740 normalized MERC documents. Processing a seeded random sample of 100 (seed=20260910).
+Sample written to C:\Users\shoot\Projects\regulatory-wiki\scripts\.audit\merc-sample-20260910.json
+
+[FLAGGED] Postponed Notice — Petition of Bhulani Steel against Maharashtra State -> subject=Standards of Performance & Consumer Protection | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.70
+[auto-accepted] Petition of Nidar Utilities Panvel LLP for the adoption of the Tariff  -> subject=Tariff Determination | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.85
+[FLAGGED] Reserved for Order Statement [Case No. 12 & 99 of 2024 & 220 & 226 of  -> subject=Institutional Governance & Administration | instrument=Order | status=In Force | confidence=0.60
+[auto-accepted] Petition of BLP Wind Project (Amberi) Private Limited under Section 86 -> subject=Renewable Energy & RPO | instrument=Order | status=In Force | confidence=0.85
+[auto-accepted] Petition of Tata Power Renewable Energy Limited seeking extension of t -> subject=Renewable Energy & RPO | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.75
+[auto-accepted] Daily Order 1427280208855 [Case No. 38 of 2015 & MA No 2 of 2015 in Ca -> subject=Competition & Open Access | instrument=Order | status=In Force | confidence=0.85
+[auto-accepted] Maharashtra State Electricity Distribution Company Ltd.?s (MSEDCL) Pet -> subject=Tariff Determination | instrument=Order | status=In Force | confidence=0.90
+[auto-accepted] Petition filled by Jsons Foundry Private Limited against Maharashtra S -> subject=Competition & Open Access | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.85
+[FLAGGED] Petition of Maharashtra State Load Dispatch Centre seeking approval fo -> subject=Competition & Open Access | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.55
+[FLAGGED] Petition of Shri Rakshpal Abrol, President, Bharatiya Udhami Avam Upbh -> subject=Regulatory Framework & Rulemaking | instrument=Order | status=In Force | confidence=0.70
+[auto-accepted] MERC (Renewable Purchase Obligation, its Compliance and Implementation -> subject=Renewable Energy & RPO | instrument=Regulations | status=In Force | confidence=0.95
+[FLAGGED] Petition of Rattan India Power Limited, under Section 86 (1) (f) of th -> subject=Competition & Open Access | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.55
+[auto-accepted] Interim Order dated 9 11 2015 [Case No. 182 of 2014] -> subject=Licensing | instrument=Order | status=In Force | confidence=0.85
+[auto-accepted] Petition filed by M/s Pulgaon Cotton Mills Limited, seeking redressal  -> subject=Competition & Open Access | instrument=Order | status=In Force | confidence=0.95
+[auto-accepted] Petition of M/s Tiwari Enterprises under Section 142 of the EA, 2003,  -> subject=Standards of Performance & Consumer Protection | instrument=Order | status=In Force | confidence=0.75
+[auto-accepted] RTI Appeal No. 10 of 2017 — Shri. Anil Vedvyas Galgali -> subject=Public Information & Transparency | instrument=RTI Response / Disclosure | status=Not Applicable | confidence=0.85
+[FLAGGED] Petition of Guardian Castings Pvt. Ltd. (GCPL) seeking Review under Se -> subject=Regulatory Framework & Rulemaking | instrument=Order | status=In Force | confidence=0.60
+[FLAGGED] Miscellaneous Petition of Dhariwal Infrastructure Limited under Sectio -> subject=Regulatory Framework & Rulemaking | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.70
+[auto-accepted] Daily Order IA. No. 112 of 2025 in Case No. 206 of 2025 Laxmi Organic -> subject=Competition & Open Access | instrument=Order | status=In Force | confidence=0.85
+[auto-accepted] RTI Application No. 47/2020 received dated 09.09.2020 — Shri. Rohit Ji -> subject=Public Information & Transparency | instrument=RTI Response / Disclosure | status=Not Applicable | confidence=0.90
+[auto-accepted] Petition of Maharashtra State Electricity Distribution Co. Ltd. (MSEDC -> subject=Renewable Energy & RPO | instrument=Order | status=In Force | confidence=0.90
+[auto-accepted] Live Streaming Link-after hearing pdf — Petitioner of ReNew Wind Energ -> subject=Public Information & Transparency | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.75
+[auto-accepted] Tata Power-T MTR 2025 Petition_Exec Summary-Marathi [Case No. 217 of 2 -> subject=Tariff Determination | instrument=Order | status=In Force | confidence=0.85
+[FLAGGED] Live Streaming Link-after hearing pdf — Petition of Maharashtra State  -> subject=Renewable Energy & RPO | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.60
+[FLAGGED] Notice _07.11.2023_Case No. 86 of 2023 -> subject=Regulatory Framework & Rulemaking | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.70
+[auto-accepted] RTI Application No. 87/2022 received dated 24.11.2022 — Shri. Ashok Ch -> subject=Public Information & Transparency | instrument=RTI Response / Disclosure | status=Not Applicable | confidence=0.90
+[auto-accepted] Case of MITC Rolling Mills Pvt Ltd has Petition against Maharashtra St -> subject=Standards of Performance & Consumer Protection | instrument=Order | status=In Force | confidence=0.85
+[auto-accepted] Petition of Cleanmax Enviro Energy Solutions Pvt. Ltd. seeking clarifi -> subject=Competition & Open Access | instrument=Order | status=In Force | confidence=0.85
+[FLAGGED] Notice 3 June 2014 24of2014 [Case No. 24 of 2014] -> subject=Regulatory Framework & Rulemaking | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.60
+[FLAGGED] Petition of Bothe Windfarm Development Pvt. Ltd. seeking directions ag -> subject=Competition & Open Access | instrument=Order | status=In Force | confidence=0.55
+[auto-accepted] Postponed Notice — Petition of Maharashtra State Electricity Distribut -> subject=Renewable Energy & RPO | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.75
+[auto-accepted] Inviting Suggestions/Objections on Velgaon Power Transmission Limited’ -> subject=Licensing | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.75
+[auto-accepted] Case No. 98 of 2014 : Complaint of M/s. K. T. Vision & Sons under Sect -> subject=Standards of Performance & Consumer Protection | instrument=Order | status=In Force | confidence=0.85
+[FLAGGED] Interlocutory Application of CIE Automotive India Limited and Strongsu -> subject=Institutional Governance & Administration | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.70
+[auto-accepted] Daily Order 222 of 2022 -> subject=Tariff Determination | instrument=Order | status=In Force | confidence=0.85
+[auto-accepted] MSEDCL-English — Tariff Revision-MSEDCL with effect from 01 September, -> subject=Tariff Determination | instrument=Press Release | status=Not Applicable | confidence=0.95
+[FLAGGED] Executive Summary-English — Inviting Suggestion/ Objection on Petition -> subject=Tariff Determination | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.72
+[auto-accepted] Petition of The Tata Power Company Ltd. for review of Order dated Janu -> subject=Tariff Determination | instrument=Order | status=In Force | confidence=0.90
+[auto-accepted] Case of Maharashtra State Electricity Transmission Co. Ltd. seeking re -> subject=Tariff Determination | instrument=Order | status=In Force | confidence=0.85
+[auto-accepted] Petition of M/s. Karnataka Resco Rooftop Solar Pvt. Ltd. under Section -> subject=Renewable Energy & RPO | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.85
+[auto-accepted] RTI Application No. 57/2019 received dated 24.06.2019 — Shri Vikran Pr -> subject=Public Information & Transparency | instrument=RTI Response / Disclosure | status=Not Applicable | confidence=0.90
+[auto-accepted] Case No. 72 of 2014 & MA NO. 06 of 2014 : Petition & Miscellaneous App -> subject=Competition & Open Access | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.85
+[auto-accepted] The Tata Power Company Limited's Petition for Approval of Capital Cost -> subject=Tariff Determination | instrument=Order | status=In Force | confidence=0.95
+[auto-accepted] Inviting Comments on Application of the Adani Electricity Mumbai Ltd.  -> subject=Licensing | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.85
+[auto-accepted] Daily Order in Case No. 22 of 2026 -> subject=Renewable Energy & RPO | instrument=Order | status=In Force | confidence=0.75
+[FLAGGED] Petition of RattanIndia Power Ltd. seeking refund of differential amou -> subject=Standards of Performance & Consumer Protection | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.55
+[auto-accepted] Short term Power Procurement by The Tata Power Company Limited (Distri -> subject=Tariff Determination | instrument=Order | status=In Force | confidence=0.85
+[FLAGGED] Interlocutory Application of Hatsun Agro Product Limited seeking urgen -> subject=Competition & Open Access | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.55
+[auto-accepted] Petition of Spectrum Scan Pvt. Ltd., against Maharashtra State Electri -> subject=Standards of Performance & Consumer Protection | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.75
+[auto-accepted] Petition of M/s. NuPower Renewables Pvt. Ltd. (NRPL) under Section 86  -> subject=Renewable Energy & RPO | instrument=Order | status=In Force | confidence=0.85
+[FLAGGED] Q3 — SEZ Biotech – 1: Standards of Performance of Distribution License -> subject=Standards of Performance & Consumer Protection | instrument=Order | status=In Force | confidence=0.60
+[FLAGGED] Interlocutory Application of Laxmi Organic Industries Limited seeking  -> subject=Institutional Governance & Administration | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.60
+[auto-accepted] Petition of Shri Sant Gadgebaba Sahakari Sut Girni Ltd. regarding non- -> subject=Standards of Performance & Consumer Protection | instrument=Order | status=In Force | confidence=0.85
+[auto-accepted] case 3 of 2004.pdf -> subject=Standards of Performance & Consumer Protection | instrument=Order | status=In Force | confidence=0.85
+[auto-accepted] Petition of Protostar Technologies Private Limited under Section 86(1) -> subject=Renewable Energy & RPO | instrument=Order | status=In Force | confidence=0.90
+[auto-accepted] RTI Application No. 43/2024 received dated 03.06.2024 — Shri. Anil P.  -> subject=Public Information & Transparency | instrument=RTI Response / Disclosure | status=Not Applicable | confidence=0.95
+[auto-accepted] RTI Application No. 097/2025 received dated 22.08.2025 — Shri. Kamalak -> subject=Public Information & Transparency | instrument=RTI Response / Disclosure | status=Not Applicable | confidence=0.90
+[auto-accepted] Interlocutory Application of Pimpri Chinchwad Municipal Corporation se -> subject=Competition & Open Access | instrument=Public Notice / Consultation Notice | status=In Force | confidence=0.85
+[FLAGGED] Petition of Adani Energy Mumbai Limited – Distribution for termination -> subject=Competition & Open Access | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.55
+[auto-accepted] NPENTL 52 of 2026 Marathi -> subject=Licensing | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.85
+[FLAGGED] Daily Order 1516279496949 [Case No. 193 of 2017] -> subject=Competition & Open Access | instrument=Order | status=In Force | confidence=0.60
+[FLAGGED] Revised Petition of Maharashtra State Electricity Distribution Company -> subject=Regulatory Framework & Rulemaking | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.60
+[FLAGGED] Executive Summary-English — Inviting Suggestion/ Objection on Adani El -> subject=Tariff Determination | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.85
+[auto-accepted] Inviting Comments on proposed amendment to the Maharashtra Electricity -> subject=Regulatory Framework & Rulemaking | instrument=Public Notice / Consultation Notice | status=Draft / Under Consultation | confidence=0.85
+[auto-accepted] Petition of Adani Power Maharashtra Limited under Section 86 of the El -> subject=Tariff Determination | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.85
+[auto-accepted] Specific conditions of Distribution Licence applicable to Brihan Mumba -> subject=Licensing | instrument=Regulations | status=In Force | confidence=0.85
+[auto-accepted] Verification of compliance of Renewable Purchase Obligation targets by -> subject=Renewable Energy & RPO | instrument=Order | status=In Force | confidence=0.95
+[FLAGGED] Case No 82 of 20014 : Petition of Pidilite Industries Limited for Redr -> subject=Competition & Open Access | instrument=Order | status=In Force | confidence=0.70
+[auto-accepted] Petition of NES Dharashiv Transmission Limited under Section 63 of the -> subject=Tariff Determination | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.85
+[auto-accepted] Case No. 178 of 2013 : Petition filed by MSLDC for approval of Budget  -> subject=Tariff Determination | instrument=Order | status=In Force | confidence=0.90
+[FLAGGED] Live Streaming Link-after hearing pdf — Review Petition of SMW ISPAT P -> subject=Public Information & Transparency | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.70
+[FLAGGED] Verification and Compliance of Renewable Purchase Obligation targets f -> subject=Renewable Energy & RPO | instrument=Order | status=In Force | confidence=0.72
+[auto-accepted] Daily Order 1444975867948 [Case No. 150 of 2014] -> subject=Tariff Determination | instrument=Order | status=In Force | confidence=0.85
+[FLAGGED] Daily Order 1500973499133 [Case No. 86 of 2016] -> subject=Competition & Open Access | instrument=Order | status=In Force | confidence=0.55
+[FLAGGED] Petition of M/s. Hamid Stone Crusher for Non-compliance of CGRF order  -> subject=Standards of Performance & Consumer Protection | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.72
+[auto-accepted] Postponed Notice — Petition filed by 1) Persipina Developers Pvt. Ltd. -> subject=Licensing | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.75
+[FLAGGED] Postponed-28102015-94 of 2015 -> subject=Regulatory Framework & Rulemaking | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.70
+[FLAGGED] Daily Order Case No. 11 of 2024 -> subject=Institutional Governance & Administration | instrument=Order | status=In Force | confidence=0.70
+[FLAGGED] Petition under Section 86(1)(f) of the Electricity Act, 2003 pertainin -> subject=Standards of Performance & Consumer Protection | instrument=Order | status=In Force | confidence=0.70
+[FLAGGED] 18th SAC Meeting -> subject=Institutional Governance & Administration | instrument=Order | status=Not Applicable | confidence=0.60
+[FLAGGED] Review Petitioner of M/s. J. S. R. M. Foods (Abhinav Gopal Agrawal) se -> subject=Regulatory Framework & Rulemaking | instrument=Order | status=In Force | confidence=0.60
+[FLAGGED] Petition of M/s Adani Power Maharashtra Limited for the assignment of  -> subject=Licensing | instrument=Order | status=In Force | confidence=0.60
+[FLAGGED] Petition-Application for Fifth Amendment of Transmission Licence with  -> subject=Licensing | instrument=Order | status=Draft / Under Consultation | confidence=0.72
+[auto-accepted] Purchase of Power from Bagasse based Co-generation Projects and in the -> subject=Tariff Determination | instrument=Order | status=In Force | confidence=0.85
+[FLAGGED] Petition of Maharashtra Airport Development Company for approval and d -> subject=Regulatory Framework & Rulemaking | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.70
+[FLAGGED] RTI Appeal No. 07 of 2025 — Shri. Sunil Wagh -> subject=Public Information & Transparency | instrument=RTI Response / Disclosure | status=Not Applicable | confidence=0.60
+[FLAGGED] Petition of M/s. Karnataka Resco Rooftop Solar Pvt. Ltd. (kresco) unde -> subject=Regulatory Framework & Rulemaking | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.70
+[auto-accepted] Daily Order 1441198937646 [Case No. 44 of 2014] -> subject=Competition & Open Access | instrument=Order | status=Under Litigation / Stayed | confidence=0.85
+[auto-accepted] Review Petitions filed by Associated Capsules Pvt. Ltd., Pudumjee Pulp -> subject=Tariff Determination | instrument=Order | status=In Force | confidence=0.85
+[auto-accepted] RTI Application No. 51/2019 received dated 27.05.2019 — Shri Akshay Ga -> subject=Public Information & Transparency | instrument=RTI Response / Disclosure | status=Not Applicable | confidence=0.90
+[FLAGGED] Petition of M/s. JSW Energy Limited for under Section 61, 86 (1) (b),  -> subject=Regulatory Framework & Rulemaking | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.70
+[FLAGGED] Petition of Maharashtra State Electricity Distribution Company Limited -> subject=Regulatory Framework & Rulemaking | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.70
+[auto-accepted] Daily Order 1484300999412 [Case No. 116 of 2016] -> subject=Tariff Determination | instrument=Order | status=In Force | confidence=0.85
+[FLAGGED] Daily Order Case No. 142 of 2023 -> subject=Competition & Open Access | instrument=Order | status=In Force | confidence=0.60
+[auto-accepted] IA No. 133 of 2025 in Case No. 228 of 2025 -> subject=Tariff Determination | instrument=Order | status=In Force | confidence=0.85
+[auto-accepted] Application praying for urgent listing of Petition in Case No.50 of 20 -> subject=Tariff Determination | instrument=Order | status=In Force | confidence=0.85
+[FLAGGED] MERC Marathi — Case No. 141 of 2024 and Case No. 142 of 2024 Inviting  -> subject=Regulatory Framework & Rulemaking | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.70
+[auto-accepted] Petition of Maharashtra State Electricity Distribution Company Ltd. (M -> subject=Tariff Determination | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.85
+[auto-accepted] Misc. Application No. 10 of 2013 in Case No 23 of 2013 Application of  -> subject=Tariff Determination | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.85
+[auto-accepted] Petition of M/s Lloyds Metal & Engineers Ltd. for determination of tar -> subject=Tariff Determination | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.85
+
+========================================================================
+OVERALL COUNTS (MERC, 100 of 20740)
+========================================================================
+Processed:            100
+Skipped (duplicate):  0
+Errored:              0
+Auto-accepted:        60
+Flagged for review:   40
+Elapsed:              284s
+
+--- Subject distribution ---
+    23  Tariff Determination
+    17  Competition & Open Access
+    14  Regulatory Framework & Rulemaking
+    12  Renewable Energy & RPO
+    11  Standards of Performance & Consumer Protection
+    10  Public Information & Transparency
+     8  Licensing
+     5  Institutional Governance & Administration
+
+--- Instrument Type distribution ---
+    47  Order
+    42  Public Notice / Consultation Notice
+     8  RTI Response / Disclosure
+     2  Regulations
+     1  Press Release
+
+--- Status distribution ---
+    50  Not Applicable
+    47  In Force
+     2  Draft / Under Consultation
+     1  Under Litigation / Stayed
+
+--- review reasons ---
+    39  low_confidence
+     7  text_extraction_failed
