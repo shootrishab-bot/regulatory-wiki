@@ -1,0 +1,322 @@
+{
+  "regulator": "CPPP",
+  "version": "v1.1",
+  "previous_version": "v1.0",
+  "run_note": "v1.1 corrections derived from a REAL pipeline run, 2026-09-10: scrapers/cppp_watcher.py scraped 6,097 real rows from eprocure.gov.in/cppp across all 17 open feeds, a POPULATION-WEIGHTED random sample of 100 (seed 20260910, weighted to an estimated 30,279 live documents) was classified against the live v1.0 taxonomy, and all 89 institutional documents were classified as a supplementary pass because a correctly-weighted sample of 100 cannot reach content that is 0.3% of the corpus. 189 real documents in total, 0 errors. Read scrapers/cppp-taxonomy-findings.md for the full evidence. The headline finding is not a tagging error but a coverage one: four of this taxonomy's tags describe states that NO document reachable from the public portal can be in, because CPPP gates Awards of Contract, cancellations, tender detail pages and corrigendum detail pages behind a CAPTCHA. v1.0's core design judgement -- that CPPP needs a tender-lifecycle Status vocabulary rather than the standard legal-instrument one -- is vindicated by the run.",
+  "add_tags": [
+    {
+      "facet": "Instrument Type",
+      "name": "Report / Statistics",
+      "definition": "A document FORM, not a topic: a periodic statistical report, an annual report, or a newsletter that publishes aggregate data about procurement activity rather than about one specific tender -- CPPP's monthly Tender Statistical Reports and its Annual Reports. This is an Instrument Type value only and is never a Subject; its Subject is Public Information & Transparency. Distinct from Press Release, which is an announcement or recognition.",
+      "notes": "REAL: CPPP's newsletterdisp feed carries 650 rows, of which 511 are monthly Tender Statistical Reports and about 14 are CPPP Annual Reports (2016-17 through 2023-24); only 121 are newsletters proper. That is 2.1% of the live corpus and the second-largest document class on the portal after tenders and corrigenda. With no Report tag available, both sampled rows went to Press Release at 0.85, with the classifier's own reason stating the document is 'a monthly statistical report on tender activity' -- it reached the only tag on offer and said so. A CPPP Annual Report filed as a Press Release is a plainer error still. DEFINITION REWORDED before release (2026-09-11) to lead with FORM rather than topic: the first wording (\"a periodic or annual data publication about procurement activity\") read as a topic and competed for the Subject slot once definitions reached the classifier -- see the Schema Note on this tag."
+    }
+  ],
+  "revise_tags": [
+    {
+      "facet": "Instrument Type",
+      "name": "Award of Contract (AoC)",
+      "status": "Active (unreachable from the public portal)",
+      "definition": "The real record of a tender's outcome once a contract has been awarded. NOT REACHABLE from the public portal: CPPP's Result of Tenders page is CAPTCHA-gated, and so is the GePNIC Bid Awards page that would otherwise serve as an alternative route.",
+      "notes": "MARKED UNREACHABLE in v1.1, not deprecated. Verified live twice on 2026-09-10: eprocure.gov.in/cppp/resultoftendersnew renders a Drupal CAPTCHA form (real captcha_sid / captcha_token / captcha_response fields, and an aoc_status select whose only values are Published and CANCEL), and eprocure.gov.in/eprocure/app?page=ResultOfTenders is also CAPTCHA-gated -- its list_table does render rows, but they are the search form itself, not data. Fired 0 times across 189 classified documents, which is correct. Kept Active because it describes something CPPP really publishes and an authenticated feed or a portal change would make it reachable; labelled so a reader does not assume the pipeline covers a tender's whole life when it covers the front half."
+    },
+    {
+      "facet": "Status",
+      "name": "Cancelled",
+      "status": "Active (unreachable from the public portal)",
+      "definition": "The tender has been withdrawn via a real Cancellation-type corrigendum. NOT REACHABLE from the public portal: the cancelled-tenders listing is CAPTCHA-gated, and a corrigendum's subtype lives on the CAPTCHA-gated corrigendum detail page.",
+      "notes": "MARKED UNREACHABLE in v1.1, not deprecated. Fired 0 times across 189 documents. See the Award of Contract note and the new Tagging Guide rule on corrigendum subtypes."
+    },
+    {
+      "facet": "Status",
+      "name": "Retendered",
+      "status": "Active (unreachable from the public portal)",
+      "definition": "The original tender was withdrawn and re-floated as a new tender process via a real Retender-type corrigendum. NOT REACHABLE from the public portal, for the same reason as Cancelled: the corrigendum subtype is only on the CAPTCHA-gated detail page.",
+      "notes": "MARKED UNREACHABLE in v1.1, not deprecated. Fired 0 times across 189 documents."
+    },
+    {
+      "facet": "Status",
+      "name": "Awarded / Closed",
+      "status": "Active (unreachable from the public portal)",
+      "definition": "The tender process has concluded with a real, published Award of Contract. NOT REACHABLE from the public portal: it depends on the CAPTCHA-gated Result of Tenders listing.",
+      "notes": "MARKED UNREACHABLE in v1.1, not deprecated. Fired 0 times across 189 documents."
+    },
+    {
+      "facet": "Instrument Type",
+      "name": "Press Release",
+      "definition": "An announcement, award recognition, or institutional communication. Does NOT cover CPPP's monthly Tender Statistical Reports or its Annual Reports -- those are Report / Statistics.",
+      "notes": "REVISED v1.1 from real data. Became the only available home for 511 real monthly statistical reports and about 14 real Annual Reports, because v1.0 had no report-shaped Instrument Type at all. Narrowed so it keeps the meaning its v1.0 definition actually describes."
+    },
+    {
+      "facet": "Subject",
+      "name": "Goods Procurement",
+      "definition": "Tenders for the purchase of goods/equipment, per GFR 2017's own standard procurement-category classification. Applies ONLY to an actual procurement transaction (a Tender Notice, Corrigendum, or Award of Contract) -- a manual, model document, circular or O.M. ABOUT procuring goods takes Procurement Policy & Framework, however prominently 'Goods' appears in its title.",
+      "notes": "REVISED v1.1 from real data, and the exclusion is stated in the DEFINITION rather than only in the Tagging Guide because the MERC run established that Tagging Guide rules never reach the classifier. Real failures: 'Manual for Procurement of Goods 2017' was tagged Goods Procurement at confidence 0.97 and auto-accepted, as were both 'Model Tender Document for Procurement of Goods' files. The GFR Manual for Procurement of Goods procures no goods -- it is the rulebook, and is named verbatim in the Procurement Policy & Framework definition."
+    },
+    {
+      "facet": "Subject",
+      "name": "Consultancy Services Procurement",
+      "definition": "Tenders for professional/consultancy services. Applies ONLY to an actual procurement transaction (a Tender Notice, Corrigendum, or Award of Contract) -- a manual, model document, circular or O.M. ABOUT procuring consultancy services takes Procurement Policy & Framework.",
+      "notes": "REVISED v1.1 from real data. Real failures: 'Manual for Procurement of Consultancy and Other Services 2017' (0.90) and 'Model Tender Document for Procurement of Consultancy Services' (0.95). Separately CONFIRMED WORKING on real tenders, against expectation -- see the Schema Note on the four-way split."
+    },
+    {
+      "facet": "Subject",
+      "name": "Non-Consultancy Services Procurement",
+      "definition": "Tenders for non-consultancy services (operational, maintenance, and similar service contracts). Applies ONLY to an actual procurement transaction (a Tender Notice, Corrigendum, or Award of Contract) -- a manual, model document, circular or O.M. ABOUT procuring such services takes Procurement Policy & Framework.",
+      "notes": "REVISED v1.1 from real data. Real failures: both 'Model Tender Document for Procurement of Non Consultancy Services' files (0.95 and 0.90). Separately CONFIRMED WORKING on real tenders: 'Annual Maintenance Work of STP of New Kenda Colliery', 'Plying of ferry service near to plant no.1 main gate' and 'ESTABLISHMENT, OPERATION and MAINTENANCE OF CT SCAN AND MRI FACILITY' were all correctly distinguished from consultancy."
+    },
+    {
+      "facet": "Subject",
+      "name": "Works Procurement",
+      "definition": "Tenders for civil works, construction, and infrastructure contracts. Applies ONLY to an actual procurement transaction (a Tender Notice, Corrigendum, or Award of Contract) -- a manual, model document, circular or O.M. ABOUT procuring works takes Procurement Policy & Framework.",
+      "notes": "REVISED v1.1 for consistency with the other three procurement-category Subjects. No real misclassification was observed for this one specifically -- CPPP publishes no 'Manual for Procurement of Works' through the scraped feeds -- but leaving one of four parallel Subjects without the exclusion would invite exactly the failure the other three demonstrated."
+    },
+    {
+      "facet": "Instrument Type",
+      "name": "Corrigendum",
+      "definition": "An amendment to an already-published Tender Notice. Real confirmed subtypes exist (a critical-date change, a cancellation, or a retender) but are NOT observable from the public listing -- see the Tagging Guide. A corrigendum row on the public feed shows the underlying tender's title, not what the corrigendum changed.",
+      "notes": "REVISED v1.1 from real data. Corrigenda are where the entire error rate of the tender sample sits: 4 of 9 flagged (44%) at 0.788 mean confidence, against 0 of 89 flagged (0%) at 0.894 for Tender Notices. Every review flag in the 100-document run was a corrigendum. The cause is structural -- the classifier can see that a corrigendum exists and nothing about what it did."
+    },
+    {
+      "facet": "Instrument Type",
+      "name": "Circular / Office Memorandum",
+      "definition": "A procurement-policy circular or OM, distinct from a Tender Notice -- includes the founding CPPP mandate itself. Decided against Manual / Guidelines by FORM, not topic: a numbered, dated issuance addressed to ministries and departments belongs here even when its subject is a manual.",
+      "notes": "REVISED v1.1 from real data. The boundary against Manual / Guidelines was not decidable without a tie-break: 37 of 89 institutional documents were flagged for review, with the flags split almost evenly between the two tags (18 and 19) -- the signature of an undecidable boundary rather than a problem with either tag. The tie-break is written into BOTH definitions, not only the Tagging Guide, because the MERC run established that Tagging Guide rules never reach the classifier."
+    },
+    {
+      "facet": "Instrument Type",
+      "name": "Manual / Guidelines",
+      "definition": "A substantive procurement-procedure manual, such as the GFR 2017's Manual for Procurement of Goods/Works/Services, or CPPP's own onboarding/operational guidelines document. Decided against Circular / Office Memorandum by FORM, not topic: a standalone reference document meant to be consulted rather than circulated belongs here.",
+      "notes": "REVISED v1.1 from real data -- see the Circular / Office Memorandum note for the shared evidence. Real boundary case: 'Amendment in General Financial Rule 2017' landed here at confidence 0.60, the lowest institutional classification in the run, because it is genuinely both -- issued as an O.M., amending a manual. Under the form test it is a Circular / Office Memorandum."
+    },
+    {
+      "facet": "Subject",
+      "name": "Public Information & Transparency",
+      "definition": "Content whose purpose is to inform the public about procurement activity or about CPPP itself, rather than to procure something or to set procurement rules: CPPP's monthly Tender Statistical Reports, its Annual Reports, its newsletters, and RTI / suo-motu transparency disclosures. Every Report / Statistics document takes this Subject.",
+      "notes": "REVISED 2026-09-11 from real data, together with the Report / Statistics definition. v1.0 scoped this Subject to RTI disclosures only, which left CPPP's statistical reports, Annual Reports and newsletters with no Subject that described them -- the model once put the Instrument Type name Report / Statistics in the Subject slot instead. Widened to name those publications, and to state that every Report / Statistics document takes this Subject."
+    }
+  ],
+  "revise_rules": [
+    {
+      "match": "A Corrigendum's Status is set by its real, named subtype",
+      "rule": "A Corrigendum's Status is set by its real, named subtype where that subtype is observable: a critical-date-change corrigendum sets Status: Corrigendum Issued, a cancellation-type sets Status: Cancelled, and a retender-type sets Status: Retendered. FROM THE PUBLIC PORTAL THE SUBTYPE IS NOT OBSERVABLE, so Corrigendum Issued is the correct default AND a known floor -- never report it as a confident finding that the tender is merely amended.",
+      "explanation": "CPPP's own help documentation names these three subtypes and gives each a distinct procedural meaning, so collapsing them would lose real signal -- the v1.0 reasoning is right. What the v1.0 rule could not know is where that signal lives: on corrigfullview, which is CAPTCHA-gated and session-token-scoped. The public listing shows only the underlying tender's title, three dates and the issuing organisation. Confirmed by the real run: all 9 sampled corrigenda took Corrigendum Issued, 4 of them flagged for review, at 0.788 mean confidence against 0.894 for tender notices. Every review flag in the 100-document sample was a corrigendum.",
+      "example": "'Tactile Work at MOB and AB' (Reserve Bank of India), classified 0.70 with the reason 'The listing is filed under Active Corrigendums ... indicating an amended tender' -- note 'listing': the classifier is reading a table row, not a document, and says so."
+    }
+  ],
+  "add_rules": [
+    {
+      "rule": "The four procurement-category Subjects (Goods / Works / Consultancy Services / Non-Consultancy Services) apply ONLY to an actual procurement transaction -- a Tender Notice, a Corrigendum, or an Award of Contract. A manual, model document, circular or O.M. ABOUT procuring a category takes Procurement Policy & Framework, however prominently that category appears in its title.",
+      "explanation": "The v1.0 rule to tag 'based on what is actually being procured' is right for a tender and actively misleading for a framework document, where the category in the title is the document's topic rather than its transaction. Seven real institutional documents were misclassified this way at confidence 0.90-0.97, five of them auto-accepted with no review flag -- confident error, which is the dangerous kind. This is structurally the same failure as MERC's, where a Daily Order that recounted litigation about another instrument was tagged as being under litigation itself: a document about X classified as an instance of X.",
+      "example": "REAL FAILURE from the 2026-09-10 run: 'Manual for Procurement of Goods 2017' -> Goods Procurement at confidence 0.97, auto-accepted. It procures no goods; it is the GFR rulebook, named verbatim in the Procurement Policy & Framework definition. Correct: Subject Procurement Policy & Framework, Instrument Type Manual / Guidelines, Status Not Applicable."
+    },
+    {
+      "rule": "Choose between Circular / Office Memorandum and Manual / Guidelines by the document's FORM, not its topic. A numbered, dated issuance addressed to ministries and departments is a Circular / Office Memorandum even when its subject is a manual. A standalone reference document meant to be consulted rather than circulated is a Manual / Guidelines.",
+      "explanation": "Without a tie-break this boundary is not decidable, and the real run shows it: 37 of 89 institutional documents were flagged, with the flags split almost evenly between the two tags (18 and 19) -- the signature of an undecidable boundary rather than a problem with one tag. Both tags are real and both are kept: CPPP's own site separates 'Procurement Policy O.M.s' from 'Rules and Procedures', which is exactly what the two encode. The scraper passes the source section through as the category hint, so the site's own filing is available to the classifier as a weak signal.",
+      "example": "'Amendment in General Financial Rule 2017' was tagged Manual / Guidelines at 0.60 -- the lowest-confidence institutional classification in the run -- because it is genuinely both: issued as an O.M., amending a manual. Under the form test it is a Circular / Office Memorandum."
+    },
+    {
+      "rule": "CPPP's monthly Tender Statistical Reports and its Annual Reports are tagged Instrument Type: Report / Statistics with Subject: Public Information & Transparency and Status: Not Applicable -- not Press Release.",
+      "explanation": "The newsletterdisp feed's 650 rows are 511 monthly statistical reports, about 14 Annual Reports, and only 121 newsletters. Press Release, per its own definition, is for announcements and award recognitions; a dated statistical data release about national procurement volumes is not one.",
+      "example": "'Monthly Tender Statistics for Organisation Using own portal' -> Report / Statistics, Public Information & Transparency, Not Applicable. The classifier's own v1.0 reason already described it as 'a monthly statistical report on tender activity published as a press release/newsletter' -- it identified the class correctly and had nowhere to file it."
+    }
+  ],
+  "add_notes": [
+    {
+      "topic": "CONFIRMED: the deliberate departure from the standard Status vocabulary was right",
+      "note": "The v1.0 Schema Note flagged, defensively, that this is the first regulator taxonomy in the project whose Status facet is NOT the standard In Force / Draft / Superseded / Amended / Repealed set, and argued a tender lifecycle is a different kind of thing. The real run supports that without qualification: 89 of 100 sampled documents are live tender notices whose only meaningful state is 'currently accepting bids', and 89 of 89 institutional documents correctly took Not Applicable. No document in 189 wanted a legal-instrument status. This is the one v1.0 design judgement that a real run can be said to have confirmed rather than corrected."
+    },
+    {
+      "topic": "MEASURED: four tags describe states no reachable document can be in",
+      "note": "Award of Contract (AoC), Cancelled, Retendered and Awarded / Closed fired 0 times across 189 real documents, and will always fire 0 times, because every route to them is CAPTCHA-gated: cppp/resultoftendersnew, cppp/cancelledtenders, cppp/tendersfullview, cppp/corrigfullview, and every eprocure/app GePNIC equivalent (Bid Awards, Cancelled/Retendered, Tenders by Classification, Tenders in Archive) -- all verified live, twice, on 2026-09-10. They are marked unreachable rather than deprecated: they describe real things CPPP publishes, and an authenticated feed or portal change would restore them overnight. A taxonomy that says what it cannot see is more useful than one that quietly implies it can."
+    },
+    {
+      "topic": "The Subject facet's own ground truth is CAPTCHA-gated, and the four-way split works anyway",
+      "note": "CPPP's Tender Category field -- the source's own Goods/Services/Works classification, and the ground truth the Subject facet's Tagging Guide rule points at -- lives on the tender detail page, behind the CAPTCHA. Subject must therefore be inferred from the tender title and issuing organisation. Two real findings follow. First, that is more workable than expected: only 1.8% (43 of 2,447) of live tender titles are pure reference numbers with no descriptive content, almost all CPWD works tenders published with the NIT number as the title. Second, and against expectation, the taxonomy's FOUR-way split works even though CPPP's own vocabulary has only three values (Goods / Services / Works, with no consultancy split): all four Subjects fired at 0.85-0.89 confidence, and the boundary is drawn where GFR would draw it -- 'PROJECT MANAGEMENT CONSULTANT' and 'Detailed Feasibility Report' to Consultancy, 'Annual Maintenance Work' and 'ferry service' to Non-Consultancy. IMPORTANT CAVEAT: this demonstrates the split is applied consistently and plausibly, NOT that it is applied correctly -- verifying that needs either a CAPTCHA route to the detail page or a hand-labelled sample, and neither exists. Do not read this note as validation of accuracy."
+    },
+    {
+      "topic": "ANSWERED: a tender's identity really does span multiple documents, and the link is buildable",
+      "note": "The v1.0 Schema Note asks whether a tender should be tracked as one evolving record or as separate linked documents, and observes the Status values were written assuming the former is at least tracked conceptually. Measured on real data: 450 tender IDs appear in BOTH the tender feed and the corrigendum feed in a single snapshot -- the same real tender, present twice, holding two different Statuses (Live / Open and Corrigendum Issued) at the same instant. The current schema stores them as two unrelated SourceDocument rows with no edge between them, so 'show me this tender's history' is not answerable today. EntryRelationship already exists for exactly this (AMENDS, with a targetHint), and the corrigendum row carries the parent tender's own ID, so the link is buildable rather than blocked. It is simply not built."
+    },
+    {
+      "topic": "CONFIRMED: extreme volume, but of one document type, and only the live slice",
+      "note": "The v1.0 Schema Note predicted CPPP would be the project's highest-volume single source. Confirmed with two corrections to the mental model. First, the listing shows only CURRENTLY LIVE tenders -- roughly 26,360 at any moment, with nothing historical -- so the volume is a continuously turning-over window rather than a growing archive, and a scraper that runs weekly will miss short-lived tenders entirely. Second, the volume is overwhelmingly one class: 87.1% live tender notices, 8.6% corrigenda, 2.1% newsletters and statistical reports, and 0.3% institutional content. Two organisations account for 71% of live central tenders (Ministry of Railways 55.4%, Military Engineer Services 15.9%) -- which is independent support for the v1.0 Tagging Guide's decision to classify by what is procured rather than by issuing ministry."
+    },
+    {
+      "topic": "The Status facet was asserted by the scraper, not tested by the classifier",
+      "note": "Every one of the 189 documents took its Status from the scraper's status_hint rather than from the classifier: Live / Open for tender-feed rows, Corrigendum Issued for corrigendum-feed rows, and no hint for institutional content (which fell through to the classifier and correctly reached Not Applicable, 89 of 89). That is the right design -- CPPP's feed structure IS a status assertion, the same class of ground truth as MTCTE's Active/Expired column -- but it means this run did not TEST the Status vocabulary, it asserted it. A portal change altering feed semantics would break Status silently, with the classifier never consulted. Recorded so nobody reads '89 documents correctly tagged Live / Open' as validation."
+    },
+    {
+      "topic": "Pagination is silently lossy if scraped the obvious way",
+      "note": "CPPP paginates only through a base64-wrapped `url=` parameter. A plain `?page=500` returns HTTP 200 with page 1's rows -- no error, no redirect. A scraper written the obvious way would fetch 2,636 pages, report complete success, and produce a corpus of the same ten tenders repeated 2,636 times. scrapers/cppp_watcher.py asserts against exactly this by comparing each page's row ids against page 1's and refusing to finish if they match. Recorded here because it is the kind of failure that produces confident, entirely fictional numbers."
+    },
+    {
+      "topic": "What v1.1 still has NOT tested",
+      "note": "Award of Contract (AoC), Cancelled, Retendered and Awarded / Closed cannot be tested at all while the CAPTCHA gating holds. RTI Response / Disclosure fired 0 times across 189 documents because CPPP publishes no RTI content through any scrapable feed -- a genuine structural absence, not a tagging failure. The new Report / Statistics tag is proposed from 525 real rows but has NOT itself been run: it did not exist when these 189 documents were classified. And the four-way Subject split is confirmed CONSISTENT but not confirmed CORRECT, for want of ground truth. None of these should be read as validated."
+    },
+    {
+      "topic": "PIPELINE DEFECT FOUND AND FIXED: Subject and Instrument Type definitions were never sent to the classifier",
+      "note": "The most consequential finding of this run, and it applies to every regulator in the project rather than to CPPP. lib/ingest.ts built its prompt from `subjectTags.map(t => t.name)` -- a bare list of tag NAMES. Only Status sent its definitions. Every regulator's Subject and Instrument Type definitions, which are the substance of every taxonomy workbook here, had never been seen by the model. Found by measurement: v1.1 tightened four Subject definitions to exclude documents merely ABOUT a procurement category, the same 89 documents were re-run, and all seven affected documents produced BYTE-IDENTICAL output with identical confidences to two decimal places (0.97, 0.95, 0.95, 0.90, 0.95, 0.90, 0.90). A definition change that alters nothing is a signal that never arrived. After the fix (renderTagSection, symmetrical with Status): 7 category-subject leaks -> 0, institutional Subject distribution a clean 75 Procurement Policy & Framework / 12 Platform Administration / 2 Public Information & Transparency. RE-MEASURED 2026-09-14 against the final v1.1 wording: 35 of 89 flagged (30 low_confidence, 6 text_extraction_failed) against 37 before the fix, and mean confidence on the two institutional Instrument Types settled at 0.77 (Circular / O.M.) and 0.75 (Manual / Guidelines). An intermediate pass showed 43 flags and 10 extraction failures; that was inflated by transient network failures on externally-hosted PDFs (cpwd.gov.in, cgda.nic.in) which did not recur, so the durable cost of sending definitions is smaller than that pass suggested. IMPLICATION: every regulator already in this database was classified against tag names alone. Re-classifying them under the fixed prompt is now a known, testable question."
+    },
+    {
+      "topic": "FOUND AND FIXED before release: the Report / Statistics tag was returned as a Subject",
+      "note": "One document in the first 189 flagged as model_returned_invalid_subject_tag: 'Monthly Tender Statistics for Organisation Using own portal Non-NIC' was given subject=Report / Statistics (an INSTRUMENT TYPE) at 0.95 confidence. Cause: the tag's first definition led with its topic ('a periodic or annual data publication about procurement activity'), which competes for the Subject slot now that definitions reach the prompt, while Public Information & Transparency was defined as RTI content only and so did not look like a home for a statistics report. The pipeline caught it -- ingestDocument() validates the model's Subject against the regulator's real SUBJECT tags and writes null plus a flag rather than a wrong tag. Fixed in two definitions rather than a Tagging Guide line, because Tagging Guide rules never reach the classifier: Report / Statistics now opens 'A document FORM, not a topic' and states it is never a Subject, and Public Information & Transparency now names statistical reports, Annual Reports and newsletters. Measured on 30 real newsletter-feed documents classified twice each (60 classifications): 28 flags before, 10 after, and all 10 remaining are text_extraction_failed rather than a classification problem."
+    }
+  ],
+  "dataset_note": "REAL classified documents from the 2026-09-10 runs -- the population-weighted 100-document sample plus the 89-document institutional pass. Every row is an actual eprocure.gov.in document that went through scrape -> normalize -> classify -> Postgres, with the tags and confidences the live pipeline assigned. Unlike the v1.0 Dataset sheet, which listed documents confirmed by research, nothing here is asserted from research.",
+  "changelog": [
+    {
+      "change": "ADDED Instrument Type: Report / Statistics",
+      "evidence": "CPPP's newsletterdisp feed is 650 rows: 511 monthly Tender Statistical Reports, ~14 CPPP Annual Reports, 121 newsletters. That is 2.1% of the live corpus, and v1.0 had no report-shaped Instrument Type, so both sampled rows went to Press Release at 0.85 with the classifier's own reason calling the document 'a monthly statistical report'."
+    },
+    {
+      "change": "MARKED UNREACHABLE (not deprecated): Award of Contract (AoC), Cancelled, Retendered, Awarded / Closed",
+      "evidence": "0 fires across 189 real documents, and structurally impossible: cppp/resultoftendersnew, cppp/cancelledtenders, cppp/tendersfullview, cppp/corrigfullview and every GePNIC eprocure/app equivalent are CAPTCHA-gated -- verified live twice. Kept Active because a portal or feed change would restore them; labelled so the workbook does not imply coverage it does not have."
+    },
+    {
+      "change": "REVISED the four procurement-category Subjects -- each now applies only to an actual procurement transaction",
+      "evidence": "Seven real institutional documents took a category Subject at confidence 0.90-0.97, five auto-accepted with no flag. 'Manual for Procurement of Goods 2017' -> Goods Procurement at 0.97, when that manual is named verbatim in the Procurement Policy & Framework definition. The exclusion is written into the DEFINITIONS, not only the Tagging Guide, because the MERC run established that Tagging Guide rules never reach the classifier."
+    },
+    {
+      "change": "REVISED Instrument Type: Corrigendum -- now states that the subtype is not observable from the public listing",
+      "evidence": "All four review flags in the 100-document sample were corrigenda: 4 of 9 flagged (44%) at 0.788 mean confidence, against 0 of 89 (0%) at 0.894 for tender notices. A corrigendum row shows the underlying TENDER's title, not what the corrigendum changed."
+    },
+    {
+      "change": "REVISED Instrument Type: Press Release -- statistical and annual reports excluded",
+      "evidence": "Was the only available home for 511 statistical reports and ~14 Annual Reports."
+    },
+    {
+      "change": "REVISED Tagging Guide rule 1 (corrigendum subtypes) -- kept, with its real limit stated",
+      "evidence": "The rule's reasoning is right and its ground truth is CAPTCHA-gated. Corrigendum Issued is now stated to be the correct default AND a known floor, rather than a confident finding."
+    },
+    {
+      "change": "ADDED 3 Tagging Guide rules",
+      "evidence": "Procurement-category Subjects apply only to transactions; Circular/O.M. vs Manual/Guidelines decided by form rather than topic; statistical and annual reports take Report / Statistics."
+    },
+    {
+      "change": "ADDED 8 Schema Notes",
+      "evidence": "The tender-lifecycle Status design is confirmed correct; four tags are unreachable; the Subject facet's ground truth is gated but the four-way split works anyway (consistent, not verified correct); a tender's identity really does span multiple documents and the link is buildable; volume is a live window not an archive, and 87% one document type; Status was asserted by the scraper rather than tested; pagination is silently lossy if scraped the obvious way; an explicit list of what remains untested."
+    },
+    {
+      "change": "NOTHING deprecated, renamed, or removed",
+      "evidence": "Unlike MERC, whose v1.0 needed eight new Instrument Types because it had no tag for 60% of its corpus, CPPP's v1.0 vocabulary matches what the portal publishes. Its Subject facet works, its Instrument Types fit, and its deliberate Status departure is vindicated. The changes here are one added tag, four labelled unreachable, six definitions tightened, and three rules recording what the portal will and will not give you."
+    },
+    {
+      "change": "PIPELINE FIX (all regulators): Subject and Instrument Type definitions now reach the classifier",
+      "evidence": "Tightening four Subject definitions produced byte-identical output on all seven affected documents, with identical confidences -- because lib/ingest.ts sent only tag NAMES for these two facets. After the fix: 7 misclassifications -> 0, institutional Subject distribution a clean 77/12. This also explains which earlier fixes in this exercise worked and why -- MERC's new tags worked because their NAMES are self-describing, and MERC's Status fixes worked because Status definitions were already being sent."
+    },
+    {
+      "change": "REVISED Instrument Type: Report / Statistics and Subject: Public Information & Transparency -- before release",
+      "evidence": "The first Report / Statistics definition led with its topic and was once returned in the Subject slot. Both definitions rewritten so the tag reads as a document form and its Subject is named. 30 real newsletter-feed documents x2 runs: 28 flags -> 10, the remaining 10 all text_extraction_failed."
+    },
+    {
+      "change": "MEASURED RESULT of applying v1.1",
+      "evidence": "Institutional pass (89 documents): 7 confidently-wrong procurement-category Subjects -> 0; Subject distribution became a clean 75 Procurement Policy & Framework / 12 Platform Administration & Onboarding / 2 Public Information & Transparency, with no procurement-category Subject on any institutional document (re-measured 2026-09-14). Weighted 100: both statistical reports moved off Press Release onto the new Report / Statistics tag; Instrument Type distribution otherwise unchanged (89 NIT, 9 Corrigendum), which is correct because v1.0 was already right about tenders. Flags moved 4 -> 7 on the weighted 100 and 37 -> 35 on the institutional pass; the breakdown is in scrapers/cppp-taxonomy-findings.md and is mostly better calibration (the Corrigendum definition now tells the model it cannot see what the corrigendum changed) plus network-related extraction failures, with one genuine new defect (see the Report / Statistics Schema Note)."
+    }
+  ],
+  "dataset": [
+    {
+      "date": "",
+      "title": "procurement of Rubber Pad for Longitudinal Bump Stop etc.",
+      "instrument": "Tender Notice (NIT)",
+      "subject": "Goods Procurement",
+      "status": "Live / Open",
+      "notes": "[weighted-100] REAL live tender notice -- 87% of CPPP's corpus is this one shape. Tender notices classify essentially perfectly: 0 of 89 flagged, 0.894 mean confidence. v1.0 assigned this at confidence 0.90, auto-accepted. v1.1 verdict: CORRECT, unchanged."
+    },
+    {
+      "date": "",
+      "title": "53/EE/E-TVM/2026-27 (Central Public Works Department (CPWD))",
+      "instrument": "Tender Notice (NIT)",
+      "subject": "Works Procurement",
+      "status": "Live / Open",
+      "notes": "[weighted-100] REAL works tender. The Goods/Works boundary was never in doubt in this run. v1.0 assigned this at confidence 0.85, auto-accepted. v1.1 verdict: CORRECT, unchanged."
+    },
+    {
+      "date": "",
+      "title": "REQUEST FOR PROPOSAL FOR PROJECT MANAGEMENT CONSULTANT - CUM - EXECUTI",
+      "instrument": "Tender Notice (NIT)",
+      "subject": "Consultancy Services Procurement",
+      "status": "Live / Open",
+      "notes": "[weighted-100] REAL consultancy tender. CPPP's OWN vocabulary has no consultancy/non-consultancy split (its search offers only Goods/Services/Works), so this is the taxonomy making a distinction finer than the source's, from the title alone -- and getting it right. Caveat: consistent and plausible, NOT verified against ground truth, which is CAPTCHA-gated. v1.0 assigned this at confidence 0.85, auto-accepted. v1.1 verdict: CORRECT, unchanged -- and notable."
+    },
+    {
+      "date": "",
+      "title": "Biennial Maintenance Contract for CITYLIFT make Elevators installed at",
+      "instrument": "Tender Notice (NIT)",
+      "subject": "Non-Consultancy Services Procurement",
+      "status": "Live / Open",
+      "notes": "[weighted-100] REAL non-consultancy service tender, correctly separated from consultancy on title evidence alone. v1.0 assigned this at confidence 0.90, auto-accepted. v1.1 verdict: CORRECT, unchanged."
+    },
+    {
+      "date": "",
+      "title": "Annual Maintenance Work of STP of New Kenda Colliery under Kenda Area",
+      "instrument": "Corrigendum",
+      "subject": "Non-Consultancy Services Procurement",
+      "status": "Corrigendum Issued",
+      "notes": "[weighted-100] REAL corrigendum, and the run's characteristic failure: every one of the four review flags in the 100-document sample was a corrigendum (4 of 9, 44%, at 0.788 mean confidence against 0.894 for tender notices). The listing shows the underlying TENDER's title, not what the corrigendum changed -- the subtype the taxonomy's first Tagging Guide rule depends on is behind the CAPTCHA. v1.0 assigned this at confidence 0.72, FLAGGED for review. v1.1 verdict: KEPT, with the rule's real limit now stated."
+    },
+    {
+      "date": "",
+      "title": "Preparation of Detailed Feasibility Report (DFR) cum Detailed Project",
+      "instrument": "Corrigendum",
+      "subject": "Consultancy Services Procurement",
+      "status": "Corrigendum Issued",
+      "notes": "[weighted-100] REAL corrigendum that classified cleanly -- included so the Dataset does not imply every corrigendum is uncertain. Status defaulted to Corrigendum Issued because that is the only subtype the public feed can support. v1.0 assigned this at confidence 0.85, auto-accepted. v1.1 verdict: KEPT, with the rule's real limit now stated."
+    },
+    {
+      "date": "",
+      "title": "Monthly Tender Statistics for Organisation Using own portal Non-NIC Ju",
+      "instrument": "Press Release",
+      "subject": "Public Information & Transparency",
+      "status": "Not Applicable",
+      "notes": "[weighted-100] REAL monthly statistical report. v1.0 had no report-shaped Instrument Type, so this landed on Press Release; the classifier's own reason called it 'a monthly statistical report on tender activity'. 511 real rows are this shape. v1.0 assigned this at confidence 0.85, auto-accepted. v1.1 verdict: CORRECTED -- v1.1 moves this to Report / Statistics."
+    },
+    {
+      "date": "",
+      "title": "Manual for Procurement of Goods 2017(3.32MB pdf)",
+      "instrument": "Manual / Guidelines",
+      "subject": "Goods Procurement",
+      "status": "Not Applicable",
+      "notes": "[institutional-89] REAL FAILURE, and the sharpest of the run. The GFR Manual for Procurement of Goods procures no goods; it is the rulebook, and it is named verbatim in the Procurement Policy & Framework definition. Tagged Goods Procurement at 0.97 and auto-accepted -- confident error, not uncertainty. Drove the new transaction-only rule. v1.0 assigned this at confidence 0.97, auto-accepted. v1.1 verdict: CORRECTED -- v1.1 Subject is Procurement Policy & Framework."
+    },
+    {
+      "date": "",
+      "title": "Model Tender Document for Procurement of Goods(in pdf)",
+      "instrument": "Manual / Guidelines",
+      "subject": "Goods Procurement",
+      "status": "Not Applicable",
+      "notes": "[institutional-89] REAL FAILURE of the same shape: a model document showing how to draft a tender, tagged as though it were one. v1.0 assigned this at confidence 0.95, auto-accepted. v1.1 verdict: CORRECTED -- v1.1 Subject is Procurement Policy & Framework."
+    },
+    {
+      "date": "",
+      "title": "Public Procurement Policy for MSEs, Amendment of 25% Order",
+      "instrument": "Circular / Office Memorandum",
+      "subject": "Procurement Policy & Framework",
+      "status": "Not Applicable",
+      "notes": "[institutional-89] REAL procurement-policy O.M., correctly tagged. Included so the Dataset shows the institutional half of the taxonomy working, not only where it fails. v1.0 assigned this at confidence 0.90, auto-accepted. v1.1 verdict: CORRECT, unchanged."
+    },
+    {
+      "date": "",
+      "title": "General Financial Rules 2005(975KB pdf)",
+      "instrument": "Manual / Guidelines",
+      "subject": "Procurement Policy & Framework",
+      "status": "Not Applicable",
+      "notes": "[institutional-89] REAL boundary case, and the lowest-confidence institutional classification in the run. An amendment to the GFR is genuinely BOTH: issued as an O.M., amending a manual. 37 of 89 institutional documents were flagged, split almost evenly between the two tags (18 and 19) -- the signature of an undecidable boundary. v1.0 assigned this at confidence 0.90, auto-accepted. v1.1 verdict: KEPT both tags; v1.1 adds a form-based tie-break rule."
+    },
+    {
+      "date": "",
+      "title": "FAQs on Public Procurement Policy for MSEs order 2012 dated 24 Oct 201",
+      "instrument": "FAQ",
+      "subject": "Procurement Policy & Framework",
+      "status": "Not Applicable",
+      "notes": "[institutional-89] REAL CPPP FAQ document -- the one the v1.0 Dataset sheet cites (CPPP-FAQs.pdf), now confirmed by an actual classified run rather than by research. v1.0 assigned this at confidence 0.85, auto-accepted. v1.1 verdict: CORRECT, unchanged."
+    },
+    {
+      "date": "",
+      "title": "Guidelines on Publishing on CPPP",
+      "instrument": "Manual / Guidelines",
+      "subject": "Platform Administration & Onboarding",
+      "status": "Not Applicable",
+      "notes": "[institutional-89] REAL platform-operations document. This Subject fired 10 times on the institutional pass and 0 times on the weighted 100 -- correctly, since institutional content is 0.3% of the live corpus. v1.0 assigned this at confidence 0.75, auto-accepted. v1.1 verdict: CORRECT, unchanged."
+    }
+  ]
+}

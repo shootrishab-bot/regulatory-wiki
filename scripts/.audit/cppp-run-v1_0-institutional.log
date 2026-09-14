@@ -1,0 +1,122 @@
+Loaded 89 normalized CPPP documents. Processing all of them.
+Sample written to C:\Users\shoot\Projects\regulatory-wiki\scripts\.audit\cppp-sample-all.json
+
+[FLAGGED] All Procurement Policy O.Ms Link -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.85
+[auto-accepted] Mandatory Publishing of Tender Information on CPPP -> subject=Public Information & Transparency | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.75
+[auto-accepted] Public Procurement Policy for MSEs, Amendment of 25% Order -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.90
+[auto-accepted] Revised format for registration of bidders from countries sharing land -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.75
+[auto-accepted] Common Examples of Restrictive and Discriminatory Conditions Against t -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.75
+[auto-accepted] OM wrt Stagewise refund of EMD to unsuccessful bidders -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.85
+[auto-accepted] Revised Application Format for Registration of bidders under Rule 144( -> subject=Procurement Policy & Framework | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.75
+[auto-accepted] Public Procurement (Preference to Make in India), Order 2017- Revision -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.75
+[auto-accepted] Uploading of Format for registration of bidders from countries which s -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.95
+[auto-accepted] Format for registration of bidders under rule 144 (xi) GFR -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.90
+[auto-accepted] Certification by Procurement Officer with respect to Make in India Ord -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.85
+[FLAGGED] Gazette Notification with respect to Start Up dt. 11.04.2018 -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.60
+[auto-accepted] Revised undertaking with respect to non-availability of items in GeM d -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.85
+[auto-accepted] Public Procurement (Preference to Make in India), Order 2017 -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.75
+[auto-accepted] Undertaking for non-availability of items in GeM dt. 24th May 2017 -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.85
+[auto-accepted] FAQs on Public Procurement Policy for MSEs order 2012 dated 24 Oct 201 -> subject=Procurement Policy & Framework | instrument=FAQ | status=Not Applicable | confidence=0.85
+[auto-accepted] Mandatory Publication of Tender Enquiries through CPPP -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.75
+[auto-accepted] OM on eProcurement by CPSEs -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.85
+[auto-accepted] Relaxation of Norms for Start Up and MSEs in Public Procurement with r -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.90
+[FLAGGED] Mandatory Publication of Tender enquiries and details of Bid Awards on -> subject=Public Information & Transparency | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.70
+[auto-accepted] Implementation of Comprehensive end to end e-Procurement for tenders o -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.75
+[FLAGGED] Compliance of e-Procurement Systems as per guidelines on Quality Requi -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.70
+[auto-accepted] Mandatory Publication of Tender enquiries using XML upload for eProcur -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.85
+[FLAGGED] Publication of Debarment Details of bidders pertaining to Make in Indi -> subject=Public Information & Transparency | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.70
+[auto-accepted] Guidelines on Publishing on CPPP -> subject=Platform Administration & Onboarding | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.75
+[FLAGGED] Implementation of eProcurement by Central Procuring Entities -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.60
+[auto-accepted] MSEs order with respect to Procurement -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.85
+[auto-accepted] Mandatory Publication of tender enquiries on CPPP -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.75
+[auto-accepted] D.O.Letter from Secretary Expenditure with respect to CPPP, e-Publishi -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.75
+[auto-accepted] Mandatory Publication of Tender enquiries on the CPPP -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.75
+[FLAGGED] Selection of Banks for ePayment dt 07.07.14 -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.60
+[auto-accepted] PERIODICAL REPORT ON PROGRESS OF E-PROCUREMENT -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.85
+[auto-accepted] Scaling of eProcurement in States - OM -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.85
+[FLAGGED] Uploading of legislation Executive Orders - OM -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.70
+[auto-accepted] Guidelines on eProcurement -> subject=Procurement Policy & Framework | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.90
+[FLAGGED] Scaling of eProcurement OM -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.70
+[FLAGGED] Withdrawal of Manpower for MMP States dt. 17.08.2015 -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.70
+[FLAGGED] CPWD procurement procedures and manuals(1.56MB pdf) -> subject=Procurement Policy & Framework | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.90
+[auto-accepted] General Financial Rules 2005(975KB pdf) -> subject=Procurement Policy & Framework | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.90
+[FLAGGED] Manual for Procurement of Consultancy and Other Services 2017(3.53MB p -> subject=Consultancy Services Procurement | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.90
+[FLAGGED] Amendment in General Financial Rule 2017 -> subject=Procurement Policy & Framework | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.60
+[auto-accepted] Manual for Procurement of Goods 2017(3.32MB pdf) -> subject=Goods Procurement | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.97
+[FLAGGED] General Financial Rules 2017 -> subject=Procurement Policy & Framework | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.95
+[FLAGGED] IT Amendment Act 2008 -> subject=Procurement Policy & Framework | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.30
+[FLAGGED] IT ACT 2000 (Legislative Department) -> subject=Procurement Policy & Framework | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.55
+[FLAGGED] Accessibility Norms -> subject=Procurement Policy & Framework | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.50
+[FLAGGED] Holiday to be observed in Central government offices during the year 2 -> subject=Procurement Policy & Framework | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.40
+[FLAGGED] Revised format for registration of bidders from ries sharing land bord -> subject=Procurement Policy & Framework | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.60
+[FLAGGED] Common Examples of Restrictive and Discriminatory Conditions Against t -> subject=Procurement Policy & Framework | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.70
+[FLAGGED] Online Portal for Lodging Grievances for alleged violation of PPP-MII  -> subject=Public Information & Transparency | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.60
+[FLAGGED] Public Procurement (Preference to Make in India), Order 2017- Revision -> subject=Procurement Policy & Framework | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.60
+[auto-accepted] Uploading of Format for registration of bidders from countries which s -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.90
+[FLAGGED] Format for registration of bidders under rule 144 (xi) GFR -> subject=Procurement Policy & Framework | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.75
+[auto-accepted] OM-Withdrawing the facility of submission of price bid dated 18th Octo -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.85
+[auto-accepted] DoE Circular on Bid Extension after Bid Opening dated 24th November 20 -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.85
+[FLAGGED] OM-Implementation of Comprehensive end to end eProcurement dt. 9th Jan -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.70
+[auto-accepted] OM - Compliance of eProcurement Systems with DIT guidelines on Quality -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.85
+[auto-accepted] Public Procurement Policy for Micro, Small and Medium Enterprises (MSM -> subject=Procurement Policy & Framework | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.90
+[auto-accepted] MSME-Public Procurement Policy for Micros and Small Enterprises order  -> subject=Procurement Policy & Framework | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.85
+[FLAGGED] Preference to domestically manufactured electronic goods in procuremen -> subject=Procurement Policy & Framework | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.60
+[auto-accepted] CVC Guidelines -> subject=Procurement Policy & Framework | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.90
+[FLAGGED] DoE-OM-eAuction24Aug2016 (Dept. of Expenditure) -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.70
+[FLAGGED] DoE-OM on EMC Recommendation DMRC-related 24 Aug2016 -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.70
+[auto-accepted] OM_QualifyingCriteria04Aug2016 (Dept. of Expenditure) -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.85
+[FLAGGED] OM_LikelySources_04Aug2016 (Dept. of Expenditure) -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.60
+[auto-accepted] OM_Empowered_Project_Team_04Aug2016 (Dept. of Expenditure) -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.85
+[FLAGGED] OM_Buyback04Aug2016 (Dept. of Expenditure) -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.60
+[FLAGGED] OM_BuildingCapacity04Aug2016 (Dept. of Expenditure) -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.60
+[auto-accepted] OM_VariationClauses04Aug2016 (Dept. of Expenditure) -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.85
+[FLAGGED] IT ACT 2000 (Legislative Department) -> subject=Procurement Policy & Framework | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.35
+[FLAGGED] IT Amendment Act 2008 -> subject=Procurement Policy & Framework | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.35
+[FLAGGED] Ministry Of Micro,Small and Medium Enterprises -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.60
+[FLAGGED] Make In India Order -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.60
+[auto-accepted] Model Tender Document for Procurement of Goods(in pdf) -> subject=Goods Procurement | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.95
+[FLAGGED] Model Tender Document for Procurement of Goods (in Word) -> subject=Goods Procurement | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.90
+[auto-accepted] Model Tender Document for Procurement of Non Consultancy Services (in  -> subject=Non-Consultancy Services Procurement | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.95
+[FLAGGED] Model Tender Document for Procurement of Non Consultancy Services (in  -> subject=Non-Consultancy Services Procurement | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.90
+[auto-accepted] Model Tender Document for Procurement of Consultancy Services (in pdf) -> subject=Consultancy Services Procurement | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.95
+[auto-accepted] Users Guide for Tender Creation -> subject=Platform Administration & Onboarding | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.90
+[auto-accepted] Users Guide for Tender Publishing -> subject=Platform Administration & Onboarding | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.90
+[auto-accepted] Users Guide for Corrigendums -> subject=Platform Administration & Onboarding | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.90
+[auto-accepted] Users Guide for AoC -> subject=Platform Administration & Onboarding | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.90
+[auto-accepted] XML Upload in CPPP Steps -> subject=Platform Administration & Onboarding | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.90
+[auto-accepted] Debarment Manual -> subject=Platform Administration & Onboarding | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.85
+[auto-accepted] Assessment of Government eProcurement System of NIC (GePNIC) by World  -> subject=Procurement Policy & Framework | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.75
+[FLAGGED] Assessment of Government eProcurement System of NIC (GePNIC) by ADB -> subject=Procurement Policy & Framework | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.70
+[auto-accepted] Web Learning on eAuction for this month -> subject=Platform Administration & Onboarding | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.85
+[auto-accepted] Web Learning on eProcurement for this week -> subject=Platform Administration & Onboarding | instrument=Manual / Guidelines | status=Not Applicable | confidence=0.85
+[auto-accepted] Central Public Procurement Portal FAQs -> subject=Platform Administration & Onboarding | instrument=FAQ | status=Not Applicable | confidence=0.95
+
+========================================================================
+OVERALL COUNTS (CPPP, 89 of 89)
+========================================================================
+Processed:            89
+Skipped (duplicate):  0
+Errored:              0
+Auto-accepted:        52
+Flagged for review:   37
+Elapsed:              363s
+
+--- Subject distribution ---
+    68  Procurement Policy & Framework
+    10  Platform Administration & Onboarding
+     4  Public Information & Transparency
+     3  Goods Procurement
+     2  Consultancy Services Procurement
+     2  Non-Consultancy Services Procurement
+
+--- Instrument Type distribution ---
+    48  Circular / Office Memorandum
+    39  Manual / Guidelines
+     2  FAQ
+
+--- Status distribution ---
+    89  Not Applicable
+
+--- review reasons ---
+    30  low_confidence
+     7  text_extraction_failed

@@ -1,0 +1,133 @@
+Loaded 100 normalized CPPP documents. Processing all of them.
+Sample written to C:\Users\shoot\Projects\regulatory-wiki\scripts\.audit\cppp-sample-all.json
+
+[auto-accepted] 53/EE/E-TVM/2026-27 (Central Public Works Department (CPWD)) -> subject=Works Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.85
+[auto-accepted] procurement of Rubber Pad for Longitudinal Bump Stop etc. -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Lube Oil Part No.- Shell Rimula R4 15W40 API CI4 Plus, Make: SHELL -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Real Time PCR- 01 No. -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Instant cure Adhesive type CYNO - 555M -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Baby Foot Step for 3-Phase locomotives (with red oxide painted) as per -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] TRANDUCER ASSEMBLY FOR E70 BRAKE SYSTEM TO FTRTIPL PT. NO. 016101000 -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] REPAIR/MAINTENANCE OF EARTHING INFRASTRUCTURE AT AF STN BAREILLY -> subject=Works Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Procurement of SECONDARY LATERAL DAMPER FOR COIL FIAT etc. -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Extension/Diversion and Dismantling of Feeder 12 in view of pump insta -> subject=Works Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Procurement of Non RC Operational and Overhauling Spares for Ms IHI Ro -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] SUPPLY OF EXECUTIVE REVOLVING 2-SEATER -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] REQUEST FOR PROPOSAL FOR PROJECT MANAGEMENT CONSULTANT - CUM - EXECUTI -> subject=Consultancy Services Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.85
+[auto-accepted] Top Bracket cover -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.85
+[auto-accepted] APD FOR AR SUSPENSION STRAP SIZE 65 mm x 50 mm x 5 mm -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.85
+[auto-accepted] Push Rod Assembly for BMBS wagons -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Directional control Valve -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Day to day Service/Replace/Maintenance of B/R works of Type-I to Type- -> subject=Works Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.85
+[auto-accepted] Pump Assy Sock Back -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.85
+[auto-accepted] PROCUREMENT OF RELAY, PLUG IN TYPE, STYLE QL1 , MAGNETICALLY LATCHED,  -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.95
+[auto-accepted] Zonal contract of P.Way Zonal works under SSE/P/VSKP on Main line for  -> subject=Works Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Construction of Boundary wall at Puducherry Airport. SH NCC Hanger to  -> subject=Works Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.95
+[auto-accepted] Monthly Tender Statistics for Organisation Using own portal Non-NIC Ju -> subject=Public Information & Transparency | instrument=Press Release | status=Not Applicable | confidence=0.85
+[auto-accepted] CREATION OF OFFICE SPACE FOR AVNL INSIDE THE CAFVD KHADKI CAMPUS PUNE. -> subject=Works Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] GTL_MEDICAL_PH.No.49130_MEDICINE_EFLORANITHINE OINT 15 Gms -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] MPCB (Motor Protection Circuit Breaker) -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] NIT for Construction of Open Parking Facility and Approach roads for I -> subject=Works Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.95
+[auto-accepted] Mirror Assembly for LHB AC 3-Tier -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Preparation of Detailed Feasibility Report (DFR) cum Detailed Project  -> subject=Consultancy Services Procurement | instrument=Corrigendum | status=Corrigendum Issued | confidence=0.85
+[auto-accepted] 2433/MS/EXP/D-290/1769, 290/1181/Dept of Rheumatology, Medical Store ( -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.85
+[auto-accepted] SET OF TEST SEQUENCE SWITCH AND LOAD WEIGHING SWITCH FOR MR-300 RAKES  -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Construction of Civil works of Barrage and Stilling basin, U/s Plastic -> subject=Works Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.95
+[auto-accepted] CRS_MEDICAL_PH NO. : 62129_ PRE AND PROBIOTIC GRANULES FOR ORAL SUSPEN -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[FLAGGED] Annual Maintenance Work of STP of New Kenda Colliery under Kenda Area  -> subject=Non-Consultancy Services Procurement | instrument=Corrigendum | status=Corrigendum Issued | confidence=0.72
+[auto-accepted] Construction of PCC Road at Ward No.02 from NH 23 to Mahesh Yadav Hous -> subject=Works Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.95
+[auto-accepted] PROCUREMENT OF SPARES FOR RAFALE AIRCRAFT -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Hanger for Bolster Spring -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] LED Assembly -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.85
+[auto-accepted] 8656 PROVISION OF APPROACH PATH, FALSE CEILING AND CONNECTED B/R WORKS -> subject=Works Procurement | instrument=Corrigendum | status=Corrigendum Issued | confidence=0.85
+[FLAGGED] Tactile Work at MOB and AB -> subject=Works Procurement | instrument=Corrigendum | status=Corrigendum Issued | confidence=0.70
+[auto-accepted] COVERING SCREW -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.85
+[auto-accepted] 1) BATTERY FUSE BOX +VE (positive) as per RCF drawing No. LW 71001 Alt -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] REPAIR/ REPLACEMENT/ RENEWAL OF EXTERNAL WATER SUPPLY DISTRIBUTION SYS -> subject=Works Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Set of Hoses for WAG-9 locomotive comprising of 08 items -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Execution of Balance Works for Major Redevelopment of Jodhpur Railway  -> subject=Works Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.95
+[auto-accepted] Circuit Breaker DC Supply, Rating - 16 A, 250 V DC -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Construction and Maintenance of OR-27-828 L151-RD Road to K Champia of -> subject=Works Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.95
+[auto-accepted] ADDN ATLN TO FLOORING AT P-195 (COOK HOUSE) AT INHS KASTURI STATION LO -> subject=Works Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.95
+[auto-accepted] INSTALLATION OF AUTOMATIC FIRE DECTION AND ALARM SYS IN BLDG NO-P-25 A -> subject=Works Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Biennial Maintenance Contract for CITYLIFT make Elevators installed at -> subject=Non-Consultancy Services Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Plying of ferry service near to plant no.1 main gate -> subject=Non-Consultancy Services Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.85
+[auto-accepted] ESTABLISHMENT, OPERATION and MAINTENANCE OF CT SCAN AND MRI FACILITIES -> subject=Non-Consultancy Services Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.85
+[auto-accepted] Fuse Auxiliary, 415/110 Volt along with base with micro switch -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Diesel run portable power generators -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Arrangement of High Tensile Transition C [Arrangement of High Tensile  -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] DISSOLVED ACETYLENE GAS -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Proposed strengthening of Last mile connectivity for networking arrang -> subject=Non-Consultancy Services Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.85
+[auto-accepted] Dismantling, shifting, re-installation, testing & commissioning of SCA -> subject=Non-Consultancy Services Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.85
+[auto-accepted] 12/SHQ BLA/CIVIL/2026-27 -> subject=Works Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.85
+[auto-accepted] Special repair and maintenance -> subject=Works Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.85
+[auto-accepted] SUPPLY AND STACKING OF STONE AGGREGATE, SAND AND FIRST CLASS BRICKSON  -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Purchase of Digital Anaesthesia Machine with Digital Vaporisers with I -> subject=Goods Procurement | instrument=Corrigendum | status=Corrigendum Issued | confidence=0.85
+[auto-accepted] RENEWAL OF WOODEN AND STEEL FURNITURE FOR MD ACCN AT AF STN CHABUA UND -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Procurement of Brake Beam Complete For CASNUB Bogie etc. -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] RECONSTRUCTION OF CERTAIN MARRIED ACCOMMODATION UNDER GE (AF) GURGAON  -> subject=Works Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.95
+[auto-accepted] Battery operated platform truck -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.85
+[auto-accepted] Supply and Installation of Self Propelled Battery Operated Articulatin -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Pin for Bogie Brake Rigging -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Consultancy services for supervision of Operation and maintenance of e -> subject=Consultancy Services Procurement | instrument=Corrigendum | status=Corrigendum Issued | confidence=0.85
+[FLAGGED] Proposed Shopping Complex on open plot near TCPC -> subject=Works Procurement | instrument=Corrigendum | status=Corrigendum Issued | confidence=0.70
+[auto-accepted] Maintenance of Various Sports Complexes. -> subject=Non-Consultancy Services Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.85
+[auto-accepted] Renovation/repair to gents and ladies change/rest room, toilets of U-  -> subject=Works Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Biennial Maintenence Contract for 2 Nos of Weighbridges at NTPC Tanda -> subject=Non-Consultancy Services Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] DHS (DYNAMIC HIP SCREW) SYSTEM SS EACH S -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Tender for Leasing of Warehouse at Verna Railway Station Premises -> subject=Non-Consultancy Services Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.85
+[auto-accepted] CLEANING OF SERVICE WATER TANKS INCL REPAIR/ MAINTENANCE OF SERVICE TA -> subject=Non-Consultancy Services Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.85
+[auto-accepted] CUFF INFLATOR WITH GAUGE -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.85
+[auto-accepted] Execution of 1)Improvement/Renovation of existing Cement Godown at SRC -> subject=Works Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Coupling, Flexible to Cummins Part No. 5531227 for Cummins Diesel Engi -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.95
+[auto-accepted] Upgraded High Capacity Draft Gear with follower for upgraded High Tens -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Replacement of the firefighting System at Noida Townships(Shubham and  -> subject=Works Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Supply of LED Light fitting (Direct) -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Light Weight Track Measuring Trolley -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.85
+[auto-accepted] LOUVER COMPLETE FOR LAVATORY WINDOW FOR AC & NON AC COACHES. -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Set of Axle box components for WAP4 Loco to CLW Drg. No.06/1/11/4 as p -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.95
+[auto-accepted] INDUSTRIAL DISPOSABLE FACE MASK -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] 02 TYPE OF LED LIGHTS -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Proposed overhauling and maintenance track works in Wardha-Badnera and -> subject=Works Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.95
+[auto-accepted] Zone work for schedule maintenance and minor repair of various bridges -> subject=Works Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Supply, Installation Testing, Commissioning, Operation and Maintenance -> subject=Works Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.85
+[auto-accepted] Augmentation/Replacement of Contact wire over Delhi Division (8th Phas -> subject=Works Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Set of CONDENSER COIL assembly -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Polyester webbing slings -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] Widening of existing 2 lane to 4 lane with paved shoulder from Km 32.9 -> subject=Works Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.95
+[auto-accepted] Monthly_Tender_Statistical_Report_Feb-2019 (NIC) -> subject=Public Information & Transparency | instrument=Press Release | status=Not Applicable | confidence=0.85
+[auto-accepted] SMPS based IPS for LC gate -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.85
+[FLAGGED] Development and Maintenance of Land to be created in Offshore of Vadhv -> subject=Works Procurement | instrument=Corrigendum | status=Corrigendum Issued | confidence=0.72
+[auto-accepted] ANALGESIC WITH ANTIBIOTIC EAR DROPS ANTI -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] PROVISION OF ADDITIONAL GTO GROUND WITH SCREEN WALL AND ALLIED SERVICE -> subject=Works Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90
+[auto-accepted] TENDER FOR LAYING AND CONSTRUCTION OF U/G STEEL PIPELINE and ASSOCIATE -> subject=Works Procurement | instrument=Corrigendum | status=Corrigendum Issued | confidence=0.85
+
+========================================================================
+OVERALL COUNTS (CPPP, 100 of 100)
+========================================================================
+Processed:            100
+Skipped (duplicate):  0
+Errored:              0
+Auto-accepted:        96
+Flagged for review:   4
+Elapsed:              238s
+
+--- Subject distribution ---
+    53  Goods Procurement
+    32  Works Procurement
+    10  Non-Consultancy Services Procurement
+     3  Consultancy Services Procurement
+     2  Public Information & Transparency
+
+--- Instrument Type distribution ---
+    89  Tender Notice (NIT)
+     9  Corrigendum
+     2  Press Release
+
+--- Status distribution ---
+    89  Live / Open
+     9  Corrigendum Issued
+     2  Not Applicable
+
+--- review reasons ---
+     4  low_confidence

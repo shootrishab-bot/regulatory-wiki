@@ -29,7 +29,14 @@ regulator website  ->  watcher/scraper  ->  adapter  ->  ingest (LLM)  ->  Postg
   instruments.
 
 Regulators currently wired up: **DOT, MTCTE, MIB, EPFO, ESIC, CLC,
-SARALSANCHAR, DST, DOS-ISRO, CCI, FIU-IND**.
+SARALSANCHAR, DST, DOS-ISRO, CCI, FIU-IND, MERC**.
+
+**CPPP** has a scraper, adapter and seeded taxonomy but is deliberately *not*
+registered for scheduled sync: a tender and its corrigendum arrive as two
+unlinked documents, and that linking is unbuilt. See
+`scrapers/cppp-taxonomy-findings.md`. **MERC**'s first sync is a ~20,600
+document backfill rather than a daily delta — run it deliberately, not from the
+cron (see the note in `lib/sync.ts`).
 
 ## Stack
 
@@ -92,6 +99,8 @@ npx tsx prisma/seed-dst.ts
 npx tsx prisma/seed-dos-isro.ts
 npx tsx prisma/seed-cci.ts
 npx tsx prisma/seed-fiu.ts
+npx tsx prisma/seed-merc.ts
+npx tsx prisma/seed-cppp.ts
 ```
 
 ### 5. Create an admin account
