@@ -73,6 +73,7 @@ import "dotenv/config";
 import { PDFParse } from "pdf-parse";
 import { prisma } from "../lib/prisma";
 import { resolveDate, type Signal } from "../lib/date-resolution";
+import { trustSystemCAs } from "../lib/system-ca";
 
 const APPLY = process.argv.includes("--apply");
 
@@ -90,6 +91,13 @@ function iso(d: Date | null): string {
 }
 
 async function main() {
+  // Same reason as scripts/backfill-missing-dates.ts: this fetches regulator
+  // documents directly instead of through getFullText(). DoT itself is fine
+  // without it, but an incomplete server certificate chain is a latent risk
+  // on any host, and it surfaces as a silent "no date found" rather than an
+  // error. See lib/system-ca.ts.
+  trustSystemCAs();
+
   let where = "";
   if (SCOPE === "future") {
     where = `AND sd."publishedDate" > NOW()`;

@@ -38,6 +38,7 @@ import type { Worker } from "tesseract.js";
 import { prisma } from "../lib/prisma";
 import { extractIssueDate } from "../lib/document-date";
 import { isDirectFile } from "../lib/file-kind";
+import { trustSystemCAs } from "../lib/system-ca";
 
 const APPLY = process.argv.includes("--apply");
 const NO_OCR = process.argv.includes("--no-ocr");
@@ -90,6 +91,13 @@ async function ocrPdf(buf: Buffer): Promise<string> {
 }
 
 async function main() {
+  // This script fetches regulator documents directly rather than going
+  // through lib/ingest.ts's getFullText(), so it needs the same OS trust
+  // store that fix does -- without it every esic.gov.in document fails with
+  // UNABLE_TO_VERIFY_LEAF_SIGNATURE and is silently reported as undateable.
+  // See lib/system-ca.ts.
+  trustSystemCAs();
+
   const docs = await prisma.$queryRawUnsafe<
     { id: string; code: string; title: string; fileUrl: string }[]
   >(`
