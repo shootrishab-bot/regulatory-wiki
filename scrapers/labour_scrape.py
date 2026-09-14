@@ -81,23 +81,30 @@ SOURCES = {
         "base_url": "https://labour.gov.in",
         "archive_discovery": True,
     },
-    # REAL, CONFIRMED 2026-08-06: single real page, 371 real document
-    # rows, no pagination (checked directly for pager/pagination/"page="
-    # markers on the real page -- none exist). archive_discovery left on;
-    # it is harmless since there is genuinely nothing to discover.
+    # DEAD as of 2026-09-09 -- DO NOT USE, and do not "fix" by retrying it.
+    # EPFO migrated its whole site: the apex host epfindia.gov.in no longer
+    # accepts TCP connections on 443 or 80 at all, and this exact path
+    # returns HTTP 404 on the replacement host (www.epfo.gov.in). Both
+    # verified directly. The live replacement is
+    # https://www.epfo.gov.in/circulars/, which is plain server-rendered HTML
+    # and so is scraped WITHOUT Playwright -- see labour_watcher_epfo.py,
+    # which no longer reads this dict at all. Kept here rather than deleted
+    # so the note itself survives for the next person who goes looking.
+    #
+    # Historical (accurate when written, 2026-08-06): single real page, 371
+    # real document rows, no pagination.
     "epfo_updates": {
         "url": "https://epfindia.gov.in/site_en/Updates.php",
         "wait_selector": "table, .content-table, tbody tr",
         "base_url": "https://epfindia.gov.in",
         "archive_discovery": True,
     },
-    # REAL, CONFIRMED 2026-08-06 (previously an unverified guess -- "Same
-    # site as updates, likely same pagination"): single real page, 91 real
-    # document rows, no pagination. Checked directly, same as
-    # epfo_updates: this page genuinely has no pager at all, which is why
-    # archive_discovery is correctly False here, not because it shares a
-    # pager with epfo_updates (it does not -- epfo_updates has none
-    # either).
+    # DEAD as of 2026-09-09 -- same site migration as epfo_updates above,
+    # same 404 on the replacement host, same replacement page. See that
+    # entry's note and labour_watcher_epfo.py.
+    #
+    # Historical (accurate when written, 2026-08-06): single real page, 91
+    # real document rows, no pagination.
     "epfo_circulars": {
         "url": "https://epfindia.gov.in/site_en/circulars.php",
         "wait_selector": "table, .content-table, tbody tr",
