@@ -60,17 +60,29 @@ const SUBJECT_TAGS: Array<{ name: string; shortCode: string; definition: string 
     definition:
       "Enforcement of Section 4 of the Competition Act: abuse of dominance, predatory pricing, denial of market access, discriminatory conduct by a dominant enterprise.",
   },
+  // The two definitions below were rewritten 2026-09-11, once lib/ingest.ts
+  // began sending definitions to the classifier at all. Review & Approval's
+  // old text cited "Sections 5-6" and Filing & Procedure's cited no section, so
+  // the Central Government's Section 54 exemption notifications -- which name
+  // Section 5 because that is what they exempt from -- drifted to Review &
+  // Approval (both de minimis notifications and the CPSE exemption, 0.85,
+  // auto-accepted). Section 54 is now stated as the DECIDING signal rather
+  // than one more citation, and the exemption case is named outright because
+  // the CPSE notification's extracted text is garbled Hindi with no visible
+  // "54" at all: only its title ("exemption ... under Section 5") reaches the
+  // model. Measured: 3 of 3 fixed on 3 of 3 repeats, 3 approval press releases
+  // unchanged.
   {
     name: "Combination Review & Approval",
     shortCode: "COMBREV",
     definition:
-      "Substantive assessment of mergers/acquisitions ('combinations') under Sections 5-6, including approvals, modification-based approvals, and Green Channel automatic approvals.",
+      "The Commission's substantive assessment of a SPECIFIC merger, acquisition or amalgamation ('combination') under Sections 5-6 and 29-31: its approval, modification-based approval, or Green Channel deemed approval. Does NOT include a Central Government notification under Section 54 that exempts a class of combinations or sets notification thresholds, even though such a notification cites Section 5 -- a document citing Section 54 takes Combination Filing & Procedure.",
   },
   {
     name: "Combination Filing & Procedure",
     shortCode: "COMBFILE",
     definition:
-      "Pre-notification and filing procedure for combinations: forms, filing guidance, pre-filing consultations, and the Green Channel automatic-approval route.",
+      "Pre-notification and filing procedure for combinations: forms, filing guidance, pre-filing consultations, the Green Channel automatic-approval route, and the rules deciding WHETHER a combination has to be notified at all -- the notification thresholds (value of assets or turnover) and the Central Government's exemptions from notification (de minimis or target exemptions, and exemptions for a class of enterprises such as Central Public Sector Enterprises, nationalised banks or Regional Rural Banks), including any extension, revision or corrigendum of those notifications. DECIDING SIGNAL WHEN SECTION 54 AND SECTION 5 BOTH APPEAR: a document issued under, or citing, Section 54 of the Competition Act (the Central Government's power to exempt) takes THIS Subject even when it also cites Section 5 or 6. Section 5 only defines what counts as a combination, so its presence alongside Section 54 does not make the document a substantive review. A notification exempting combinations from Section 5 (or Sections 5 and 6) is a Section 54 exemption and takes this Subject even where the Section 54 citation itself is not visible in the text.",
   },
   {
     name: "Combination Compliance & Enforcement",

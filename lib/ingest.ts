@@ -17,6 +17,34 @@
  * self-referential-only Amended/Superseded, default-to-In-Force) are
  * regulator-agnostic and kept verbatim.
  *
+ * A third change (2026-09-10) is the largest of the three: Subject and
+ * Instrument Type are now rendered to the prompt WITH THEIR DEFINITIONS, the
+ * way Status already was. Before this they were sent as a bare list of tag
+ * names, so every regulator's Subject and Instrument Type definitions -- the
+ * entire substance of the taxonomy workbooks -- were invisible to the
+ * classifier. See renderTagSection() for how this was found (a definition
+ * change that produced byte-identical output) and what it retrospectively
+ * explains.
+ *
+ * Two further rules were ADDED here from real MERC evidence, both
+ * regulator-agnostic and both benefiting every regulator on future ingests:
+ * the source-category hint is now rendered into the prompt (see buildPrompt --
+ * NormalizedDocument.category_hint had been populated by every adapter and read
+ * by nothing), and the existing self-referential test for Amended/Superseded
+ * is now extended to litigation/stay statuses. The second came from a real
+ * failure: a MERC Daily Order was tagged "Under Litigation / Stayed" at 0.85
+ * confidence, auto-accepted, on a document whose own text reads "no stay has
+ * been granted by the Supreme Court" about an appeal against a DIFFERENT
+ * instrument. See scrapers/merc-taxonomy-findings.md, Finding 4.
+ *
+ * A fourth rule (2026-09-11) decides how much that category hint counts when
+ * a document has NO text. It becomes strong evidence for Instrument Type only,
+ * never for Subject, Status or confidence, and the prompt now says whether the
+ * text is missing because extraction FAILED (a real document exists, unread)
+ * or because there is no body at all. Measured against CCI's scanned pre-2015
+ * Antitrust Orders before being applied -- see buildPrompt() for why the
+ * simpler "no text = trust the hint" version was rejected.
+ *
  * Status is now a real per-regulator STATUS facet (TaxonomyTag), fetched
  * from Postgres exactly like Subject and Instrument Type — NOT a fixed
  * global enum anymore. That changed 2026-08-17 when DST needed a genuinely
@@ -33,6 +61,7 @@ import type { TaxonomyTagModel as TaxonomyTag } from "@/app/generated/prisma/mod
 import { prisma } from "./prisma";
 import OpenAI from "openai";
 import { PDFParse } from "pdf-parse";
+import { trustSystemCAs } from "./system-ca";
 
 // ---------------------------------------------------------------------------
 // Input shape — mirrors scrapers/normalized_document.py's NormalizedDocument
@@ -131,11 +160,29 @@ function getDeepSeekClient(): OpenAI {
 // own real STATUS tags (see resolveStatusTag below), so "Open"/"Closed"
 // simply won't match anything for a regulator that doesn't have those tag
 // names and falls through to "no_match" rather than leaking cross-regulator.
+// "Repealed"/"Draft" added 2026-09-10 for MERC: merc.gov.in shelves its own
+// instruments under literal "Repealed Regulations" / "Repealed Guidelines" and
+// "Draft Regulations" sections, which is the regulator's own assertion about
+// the instrument's status, not a classifier guess -- the same class of ground
+// truth as MTCTE's Active/Expired column.
+//
+// "Live"/"Corrigendum Issued" added the same day for CPPP, whose feed
+// structure IS a status assertion: everything in `latestactivetendersnew` is a
+// currently-live tender and everything in `latestactivecorrigendumsnew` is a
+// tender with a corrigendum against it, both by the portal's own definition.
+//
+// Every one of these stays harmless for other regulators: resolution is always
+// scoped to the regulator's own real STATUS tags (see resolveStatusTag), so a
+// name that regulator doesn't have simply falls through to "no_match".
 const STATUS_HINT_TO_NAME: Record<string, string> = {
   Active: "In Force",
   Expired: "Superseded / Repealed",
   Open: "Open / Accepting Applications",
   Closed: "Closed / Applications Closed",
+  Repealed: "Repealed",
+  Draft: "Draft / Under Consultation",
+  Live: "Live / Open",
+  "Corrigendum Issued": "Corrigendum Issued",
 };
 
 // Narrow structural types rather than the full Prisma TaxonomyTag model:
@@ -220,6 +267,38 @@ interface ClassificationResult {
  * infer it, and ingestDocument() double-checks it server-side regardless via
  * resolveStatusTag()'s scope_mismatch case.
  */
+/**
+ * Renders a Subject or Instrument Type section as value + meaning pairs.
+ *
+ * REAL DEFECT FOUND AND FIXED (2026-09-10): this used to be
+ * `JSON.stringify(tags.map(t => t.name))` — a bare list of tag NAMES. Every
+ * regulator's Subject and Instrument Type DEFINITIONS, which are the entire
+ * substance of the taxonomy workbooks and the thing a human spends their time
+ * getting right, were never sent to the classifier at all. Only Status sent
+ * its definitions (see renderStatusSection below), and only because that
+ * function was written later for DST's scoped vocabulary.
+ *
+ * Found by measurement, not by reading: CPPP's v1.1 tightened four Subject
+ * definitions to exclude documents that are merely ABOUT a procurement
+ * category ("Manual for Procurement of Goods 2017" is not a goods tender), and
+ * a re-run produced **byte-identical output on all seven affected documents,
+ * with identical confidences to two decimal places** (0.97, 0.95, 0.95, 0.90,
+ * 0.95, 0.90, 0.90). A definition change that alters nothing at all is not a
+ * weak signal; it is a signal that never arrived.
+ *
+ * It also explains, retrospectively, which earlier fixes worked and why. MERC's
+ * new `Hearing Notice` tag worked because the tag NAME is self-describing.
+ * MERC's `Not Applicable` and `In Force` fixes worked because they were Status
+ * definitions, which were already being sent. Nothing that depended on a
+ * Subject or Instrument Type definition has ever worked.
+ */
+function renderTagSection(label: string, tags: TaxonomyTag[]): string {
+  const values = tags
+    .map((t) => ({ value: t.name, meaning: t.definition ?? "" }))
+    .sort((a, b) => a.value.localeCompare(b.value));
+  return `${label} (choose exactly one — match on the MEANING, not just the name):\n${JSON.stringify(values, null, 2)}`;
+}
+
 function renderStatusSection(statusTags: TaxonomyTag[], subjectTags: TaxonomyTag[]): string {
   const subjectNameById = new Map(subjectTags.map((s) => [s.id, s.name]));
   const groups = new Map<string, { subjectIds: string[]; tags: TaxonomyTag[] }>();
@@ -265,17 +344,61 @@ function buildPrompt(
   regulatorName: string,
   title: string,
   body: string | null,
-  subjectList: string[],
-  instrumentList: string[],
-  statusSection: string
+  subjectSection: string,
+  instrumentSection: string,
+  statusSection: string,
+  sourceCategory: string | null,
+  extractionFailed = false
 ): string {
+  // REAL GAP FOUND AND FIXED (2026-09-10): NormalizedDocument.category_hint has
+  // existed since the contract was written, and its own docstring says it is
+  // "a real, useful weak signal for Instrument Type classification, pass it
+  // through, don't discard it" -- but nothing downstream ever read it. Every
+  // adapter had been faithfully populating a field the classifier never saw.
+  // Confirmed by grep: the only consumer was scripts/ingest-dot-test.ts, which
+  // uses it to FILTER a test batch, not to classify.
+  //
+  // This matters most for the two regulators that surfaced it. MERC's Orders
+  // feed carries the Commission's own 25-value subject vocabulary; CPPP's
+  // listing carries the issuing organisation, which for the large share of
+  // CPPP tenders titled only with a departmental reference number is the ONLY
+  // substantive signal that exists. Discarding either was throwing away the
+  // best evidence available.
+  //
+  // Deliberately framed as a weak signal that loses to the document's own
+  // text, not as an authority: a source's own shelving is often about where
+  // the webmaster filed something, and the existing rule "prioritize what the
+  // document's own text explicitly says" has to keep winning.
+  //
+  // EXCEPT when there is no document text to win (2026-09-11). With a title
+  // alone, the definitions change pulled MERC hearing notices whose titles
+  // read like a petition ("Petition of M/s Adani Power ... for the assignment
+  // of Transmission License") to Order, over a "Hearings / Cause List" hint
+  // that was the best evidence in the prompt. So with no text the hint becomes
+  // strong -- but ONLY for Instrument Type, and never as a reason for
+  // confidence. A blanket "no text = trust the hint" was measured first and
+  // rejected: on CCI's scanned pre-2015 Antitrust Orders it raised title-only
+  // guesses whose Subject (Section 3 vs Section 4) cannot be told from a
+  // case-name title (one 0.75 -> 0.85), which is exactly the confident-looking
+  // answer needs_review exists to prevent. A category says what FORM a
+  // document is; it says nothing about its Subject. Measured under this
+  // wording: every one of those orders stays <= 0.60 with low_confidence set,
+  // and the MERC hearing notices return to Hearing Notice. The flag itself is
+  // guaranteed separately by text_extraction_failed, which never depends on
+  // the model -- but a document with no text and NO extraction failure (a
+  // MERC hearing row with no attachment at all) has only low_confidence to
+  // flag it, so the confidence has to stay honest too.
+  const hasBody = Boolean(body && body.trim());
+  const categorySection = sourceCategory
+    ? `\nSOURCE-PROVIDED CATEGORY HINT: ${JSON.stringify(sourceCategory)}
+${hasBody ? "This is the label the regulator's own website filed this document under (a section name, feed category, or issuing organisation). Treat it as a weak corroborating signal only. If the document's own title or text contradicts it, the document wins." : "This is the label the regulator's own website filed this document under (a section name, feed category, or issuing organisation). No document text is available, so for INSTRUMENT TYPE ONLY treat this label as strong evidence of what form of document this is: choose the Instrument Type it describes unless the title itself explicitly names a different form. The label is NOT evidence for Subject or Status and must not raise your confidence in either. Your single \"confidence\" value covers all three facets, so it must reflect your LEAST certain facet: a confident Instrument Type does not make an uncertain Subject confident."}\n`
+    : "";
+
   return `You are classifying a regulatory document from ${regulatorName} along three facets. For Subject and Instrument Type, you MUST choose only from the exact lists given below — do not invent a new value or paraphrase an existing one.
 
-SUBJECT (choose exactly one from this list):
-${JSON.stringify(subjectList, null, 2)}
+${subjectSection}
 
-INSTRUMENT TYPE (choose exactly one from this list):
-${JSON.stringify(instrumentList, null, 2)}
+${instrumentSection}
 
 ${statusSection}
 
@@ -289,11 +412,12 @@ Subject rules:
 Status rules:
 - Default to whichever value in your chosen Status set represents the normal/operative state for that set (e.g. "In Force" for a formal-instrument-style set) unless there is a clear, specific reason otherwise. A final report, a notified rule, an order, or a notice being ABOUT a consultation are all normally in that "operative" state as documents in their own right, even if their SUBJECT MATTER is advisory, non-binding, or consultation-related.
 - A value meaning the document itself has been changed or replaced (e.g. "Amended", "Superseded") applies ONLY when the document ITSELF has been changed or replaced by something else (self-referential, e.g. "(as amended)", "has been superseded"). A document that itself amends or supersedes ANOTHER document keeps its own operative status — do not confuse "this document changes something else" with "this document has been changed."
+- The same self-referential test applies to any value meaning the document is under challenge or suspended (e.g. "Under Litigation / Stayed"): it requires that THIS document is the one under appeal or stayed, and that a stay has actually been GRANTED rather than merely applied for. A document that recounts litigation about some OTHER instrument — a judgment being appealed, a party's pending application elsewhere — keeps its own operative status.
 
 Document title: ${title}
-
+${categorySection}
 Document text:
-${body ? body.slice(0, 4000) : "(no body text provided — classify from title alone)"}
+${body ? body.slice(0, 4000) : extractionFailed ? "(this document exists, but its text could not be extracted -- for example a scanned image with no text layer. You have NOT read its content: classify from the title and category, and let your confidence reflect that the content itself is unread.)" : "(no body text provided — classify from title alone)"}
 
 Respond with ONLY a JSON object, no other text, in this exact shape:
 {"subject": "<exact tag from the Subject list>", "instrument_type": "<exact tag from the Instrument Type list>", "status": "<exact value from the Status list>", "confidence": <float 0-1>, "reason": "<one sentence>"}
@@ -306,14 +430,25 @@ async function classifyDocument(
   body: string | null,
   subjectTags: TaxonomyTag[],
   instrumentTags: TaxonomyTag[],
-  statusTags: TaxonomyTag[]
+  statusTags: TaxonomyTag[],
+  sourceCategory: string | null,
+  extractionFailed = false
 ): Promise<ClassificationResult> {
   const client = getDeepSeekClient();
-  const subjectList = subjectTags.map((t) => t.name).sort();
-  const instrumentList = instrumentTags.map((t) => t.name).sort();
+  const subjectSection = renderTagSection("SUBJECT", subjectTags);
+  const instrumentSection = renderTagSection("INSTRUMENT TYPE", instrumentTags);
   const statusSection = renderStatusSection(statusTags, subjectTags);
 
-  const prompt = buildPrompt(regulatorName, title, body, subjectList, instrumentList, statusSection);
+  const prompt = buildPrompt(
+    regulatorName,
+    title,
+    body,
+    subjectSection,
+    instrumentSection,
+    statusSection,
+    sourceCategory,
+    extractionFailed
+  );
 
   const response = await client.chat.completions.create({
     model: MODEL,
@@ -418,6 +553,12 @@ export async function getFullText(doc: NormalizedDocument): Promise<FullTextResu
     // ~26 docs/min to ~1/min, then to zero). This function is shared by
     // EVERY regulator's ingestion, not just DST's, so this was a latent
     // risk for all of them -- it just hadn't been hit before now.
+    // Called here rather than at module scope so merely importing this file
+    // (the Next.js app does, via lib/actions.ts) has no TLS side effect --
+    // it only takes effect on the one code path that actually fetches a
+    // regulator's document. Idempotent; see lib/system-ca.ts for why several
+    // real regulator hosts need it.
+    trustSystemCAs();
     try {
       const res = await fetch(doc.file_url, { signal: AbortSignal.timeout(30_000) });
       if (!res.ok) {
@@ -527,7 +668,9 @@ export async function ingestDocument(
       text,
       taxonomy.subjectTags,
       taxonomy.instrumentTags,
-      taxonomy.statusTags
+      taxonomy.statusTags,
+      doc.category_hint,
+      extractionFailed
     );
 
     const subjectTag = taxonomy.subjectTags.find((t) => t.name === classification.subject);
