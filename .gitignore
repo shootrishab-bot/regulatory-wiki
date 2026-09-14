@@ -97,3 +97,27 @@ scrapers/tmp_*.py
 scripts/tmp-*.ts
 # raw Claude Code session transcript captured while building the CCI scraper
 scrapers/cci_scraper/RegWiki.txt
+
+# Office's owner/lock file for a workbook that is open in Excel. It appears
+# next to any committed .xlsx while it is being viewed and is never content.
+~$*
+
+# Generated intermediates for the cross-regulator taxonomy audit. The three
+# generator scripts (scripts/build-taxonomy-*.{ts,py}) and the verification
+# harness in scripts/.audit/*.ts|py ARE source and are committed; these are
+# their outputs, regenerated from the live database on demand, and would
+# otherwise churn on every run. The two artefacts a human actually reads
+# (taxonomy-canonical-concepts.md / .xlsx) are committed deliberately.
+scripts/.audit/findings.json
+scripts/.audit/snapshot-*.json
+scripts/.audit/verification-result.md
+# Same split for the per-regulator taxonomy-test runs: the revision SPEC and
+# its builder are source (scripts/revise_taxonomy_workbook.py consumes the spec
+# to produce the vNEXT workbook), while the drawn sample and the read-back
+# analysis are regenerated outputs of a specific run.
+scripts/.audit/*-sample-*.json
+scripts/.audit/*-run-analysis.json
+# ...except the two classification logs a workbook's Dataset sheet is built
+# from, which ARE the evidence and are small enough to keep:
+!scripts/.audit/merc-run-v1_*.log
+!scripts/.audit/cppp-run-v1_*.log

@@ -130,6 +130,12 @@ model TaxonomyTag {
   // three Funding Calls Subjects) -- both the classification prompt and the
   // ingestion pipeline's own validation read this, see lib/ingest.ts.
   statusAppliesToSubjectIds String[] @default([])
+  // OPTIONAL cross-regulator mapping -- nullable BY DESIGN and expected to stay
+  // null for most tags. See CanonicalConcept above: a null here means "this tag
+  // has no confirmed equivalent at another regulator", which is the correct and
+  // common answer, not missing data.
+  canonicalConceptId String?
+  canonicalConcept   CanonicalConcept? @relation(fields: [canonicalConceptId], references: [id])
   createdAt     DateTime      @default(now())
 
   subjectOnEntries       UpdateEntry[]        @relation("EntrySubject")
@@ -140,6 +146,54 @@ model TaxonomyTag {
 
   @@unique([regulatorId, facet, name])
   @@index([regulatorId, facet])
+  @@index([canonicalConceptId])
+}
+
+// ----------------------------------------------------------------------------
+// CANONICAL CONCEPT (cross-regulator mapping layer)
+// ----------------------------------------------------------------------------
+// An OPTIONAL layer that sits on top of the per-regulator taxonomies. It does
+// not replace, rename, merge, or constrain any regulator's own TaxonomyTag --
+// every regulator's vocabulary stays exactly as seeded. Its only job is to let
+// a cross-regulator query ask "show me every regulator's press releases"
+// without pretending the regulators share a vocabulary they demonstrably
+// don't.
+//
+// This was added after a full audit of the real seeded tags in Postgres
+// (2026-09-07, see taxonomy-canonical-concepts.md), NOT from the taxonomy
+// workbooks in the repo -- the audit found the workbooks and the live data
+// disagree (every UpdateEntry row is tagged taxonomyVersion "v1.0" while
+// individual tags carry versionAdded values up to "v2.0").
+//
+// The mapping is deliberately PARTIAL and stays that way. Most Subject tags
+// are regulator-specific by nature ("Abuse of Dominant Position", "SACFA
+// Clearances") and correctly map to nothing. An unmapped tag is the expected
+// outcome, not a gap to be filled in later.
+//
+// Critically, a name match is NOT sufficient evidence of a concept match. The
+// audit found real false cognates -- "Notification" means five different
+// things across CCI/EPFO/ESIC/FIU/MTCTE, and "Order" means an adjudicatory
+// enforcement order at CCI/FIU but a routine administrative directive at
+// CLC/DOT/ESIC/MIB/SARALSANCHAR. Those tags are deliberately left unmapped.
+// Do not "complete" the mapping by linking them; doing so would silently
+// conflate different real scopes and make cross-regulator search worse than
+// no mapping at all. Read the report before adding rows here.
+
+model CanonicalConcept {
+  id         String        @id @default(cuid())
+  facet      Facet         // SUBJECT | INSTRUMENT_TYPE | STATUS
+  name       String        // e.g. "Enforcement / Adjudicatory Order"
+  definition String        // what the shared concept actually means, in terms
+                           // that hold for EVERY tag mapped to it -- if a
+                           // definition has to be stretched to fit one more
+                           // regulator, that regulator does not belong here
+  notes      String?       // audit trail: why borderline regulators were
+                           // included or deliberately excluded
+  createdAt  DateTime      @default(now())
+  tags       TaxonomyTag[]
+
+  @@unique([facet, name])
+  @@index([facet])
 }
 
 // Proposed new tags surfaced by the detection pipeline (clustering
