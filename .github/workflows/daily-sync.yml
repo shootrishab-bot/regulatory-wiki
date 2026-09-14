@@ -29,8 +29,14 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    # 11 regulators now (was 3 when this comment was first written; FIU-IND
-    # added 2026-08-25), each new document costing a DeepSeek call. CCI and
+    # 12 regulators now (was 3 when this comment was first written; FIU-IND
+    # added 2026-08-25, MERC 2026-09-14), each new document costing a DeepSeek
+    # call. MERC is in REGULATORS but is deliberately EXCLUDED from scheduled
+    # runs by its own skipScheduled flag, which lib/sync.ts honours when the
+    # trigger is "schedule". Its first sync is a ~20,600-document backfill
+    # rather than a daily delta, and it would exhaust the budget below every
+    # night while spending real DeepSeek credit to do it. Run it by hand once
+    # (npx tsx scripts/sync-all.ts --only MERC), then drop the flag. CCI and
     # DOS-ISRO were both already present in lib/sync.ts's REGULATORS array
     # (which this job's `sync-all.ts --trigger schedule` call below already
     # runs in full, no --only filter) before this comment was last revised --

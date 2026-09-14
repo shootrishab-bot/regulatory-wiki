@@ -87,6 +87,22 @@ export interface RegulatorSync {
    * not a guess.
    */
   scrapeTimeoutMs?: number;
+  /**
+   * Set to a REASON string to exclude this regulator from unattended
+   * scheduled runs (`--trigger schedule`, i.e. the GitHub Actions cron)
+   * while leaving it fully available to a deliberate manual run.
+   *
+   * Presence means "skip"; the string is the why. It is written straight into
+   * the SyncRunRegulator row's `detail`, so the durable record says what
+   * happened and why without anyone having to come back here to find out.
+   *
+   * An explicit `--only` always wins: naming a regulator is a deliberate
+   * instruction, and this must never be able to make one unrunnable.
+   *
+   * Added for MERC, whose first sync is a backfill of the whole corpus rather
+   * than a daily delta -- see its entry below.
+   */
+  skipScheduled?: string;
 }
 
 export const REGULATORS: RegulatorSync[] = [
@@ -286,7 +302,11 @@ export const REGULATORS: RegulatorSync[] = [
   // FIRST RUN IS A BACKFILL, not a daily delta: only the 100-document taxonomy
   // sample is in Postgres, so the first sync will try to classify ~20,600
   // documents (most needing a PDF download) sequentially -- far beyond the
-  // workflow's 120-minute job budget. Run it deliberately, not from the cron.
+  // workflow's 120-minute job budget. That used to be a comment asking the
+  // reader to be careful; skipScheduled below now enforces it, because a
+  // warning in a comment does not stop a cron that runs every regulator in
+  // this array with no --only filter. Drop the flag once the backfill has
+  // been done by hand and MERC is a genuine daily delta like the others.
   {
     code: "MERC",
     watcher: "merc_watcher.py",
@@ -294,6 +314,10 @@ export const REGULATORS: RegulatorSync[] = [
     normalizedJson: "data/merc_normalized.json",
     blockedMarkers: ["BLOCKED:", "HTTP 401 for", "HTTP 403 for", "HTTP 429 for"],
     hasBlockedDetection: true,
+    skipScheduled:
+      "First sync is a ~20,600-document backfill, not a daily delta, and would " +
+      "exceed the workflow's 120-minute budget while spending real DeepSeek " +
+      "credit. Run it deliberately: npx tsx scripts/sync-all.ts --only MERC",
   },
 ];
 
@@ -537,13 +561,33 @@ export async function syncRegulator(
   });
 }
 
+/**
+ * Should this regulator sit out this particular run? Returns the reason, or
+ * null to run it.
+ *
+ * Pulled out as a pure function deliberately: the alternative is burying the
+ * condition inside runSync, where the only way to check it is to start a real
+ * scheduled sync -- which, for the regulator this exists to protect, means
+ * kicking off the very 20,600-document backfill it is meant to prevent.
+ */
+export function skipsOnTrigger(
+  reg: RegulatorSync,
+  trigger: string,
+  explicitOnly: boolean
+): string | null {
+  if (explicitOnly) return null; // naming a regulator always wins
+  if (trigger !== "schedule") return null; // only unattended runs are guarded
+  return reg.skipScheduled ?? null;
+}
+
 export async function runSync(opts: {
   trigger: string;
   only?: string[];
   log?: (msg: string) => void;
 }): Promise<{ runId: string; results: RegulatorResult[] }> {
   const log = opts.log ?? ((m: string) => console.log(m));
-  const targets = opts.only?.length
+  const explicitOnly = Boolean(opts.only?.length);
+  const targets = explicitOnly
     ? REGULATORS.filter((r) => opts.only!.includes(r.code))
     : REGULATORS;
 
@@ -557,22 +601,43 @@ export async function runSync(opts: {
   const results: RegulatorResult[] = [];
   for (const reg of targets) {
     let result: RegulatorResult;
-    try {
-      result = await syncRegulator(reg, log);
-    } catch (e) {
-      // One regulator blowing up must not abort the others.
+    const skipReason = skipsOnTrigger(reg, opts.trigger, explicitOnly);
+    if (skipReason) {
+      // Recorded as SKIPPED rather than filtered out of `targets`, for exactly
+      // the reason BLOCKED is never reported as "zero new documents" (see the
+      // module docstring): a regulator absent from the run must not be
+      // mistaken for a regulator that had nothing new. This also puts the
+      // reason in Postgres, where the digest and show-sync-runs.ts can see it.
       result = {
         code: reg.code,
-        status: "ERROR",
+        status: "SKIPPED",
         scrapedRows: 0,
         newDocuments: 0,
         ingested: 0,
         flagged: 0,
-        errors: 1,
-        detail: e instanceof Error ? e.message.slice(0, 400) : String(e),
+        errors: 0,
+        detail: skipReason,
         durationMs: 0,
       };
-      log(`[${reg.code}] ERROR -- ${result.detail}`);
+      log(`[${reg.code}] SKIPPED on a "${opts.trigger}" run -- ${skipReason}`);
+    } else {
+      try {
+        result = await syncRegulator(reg, log);
+      } catch (e) {
+        // One regulator blowing up must not abort the others.
+        result = {
+          code: reg.code,
+          status: "ERROR",
+          scrapedRows: 0,
+          newDocuments: 0,
+          ingested: 0,
+          flagged: 0,
+          errors: 1,
+          detail: e instanceof Error ? e.message.slice(0, 400) : String(e),
+          durationMs: 0,
+        };
+        log(`[${reg.code}] ERROR -- ${result.detail}`);
+      }
     }
     results.push(result);
     try {
