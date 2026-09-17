@@ -342,6 +342,38 @@ interface PyResult {
   timedOut: boolean;
 }
 
+/**
+ * How long to wait after killing a timed-out scraper before resolving
+ * without it. Only reached when the process tree refuses to die; see the
+ * timeout handler in runScript().
+ */
+const KILL_GRACE_MS = 10 * 1000;
+
+/**
+ * Kill a scraper and everything it started. child.kill() alone is not
+ * enough: the watchers drive Playwright, so the real work happens in
+ * Chromium processes that are the scraper's children, not ours, and on
+ * Windows those are not in a process group we can signal. taskkill /T walks
+ * the tree; on Unix the SIGTERM to the direct child is what the previous
+ * behaviour already relied on and is left alone.
+ */
+function killTree(pid: number | undefined) {
+  if (pid === undefined) return;
+  if (process.platform === "win32") {
+    try {
+      spawn("taskkill", ["/PID", String(pid), "/T", "/F"], { stdio: "ignore" });
+    } catch {
+      // Best effort: the grace timer in runScript() is the real backstop.
+    }
+    return;
+  }
+  try {
+    process.kill(pid, "SIGTERM");
+  } catch {
+    // Already gone.
+  }
+}
+
 function runScript(
   runtime: "python" | "node",
   script: string,
@@ -354,7 +386,11 @@ function runScript(
         : (["python", [script]] as const);
     const child = spawn(cmd, args, {
       cwd: SCRAPERS_DIR,
-      shell: process.platform === "win32", // npx needs a shell to resolve on Windows
+      // A shell ONLY for npx, which cannot be resolved without one on
+      // Windows. Python is spawned directly, deliberately: with shell:true
+      // the child is cmd.exe and child.kill() below kills only the shell,
+      // leaving the watcher itself running -- see the timeout handler.
+      shell: process.platform === "win32" && runtime === "node",
       // Python defaults to the console codepage on Windows and dies on real
       // scraped titles containing curly quotes; force UTF-8 for both streams.
       // Harmless no-op for the node runtime.
@@ -363,20 +399,37 @@ function runScript(
     let stdout = "";
     let stderr = "";
     let timedOut = false;
+    let settled = false;
+    const finish = (r: PyResult) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(r);
+    };
     const timer = setTimeout(() => {
       timedOut = true;
-      child.kill();
+      killTree(child.pid);
+      // A killed process's descendants can outlive it and keep the stdio
+      // pipes open, in which case "close" never fires and the whole sync
+      // hangs forever on a regulator it has ALREADY given up on. Observed
+      // live on 2026-09-17: DoT hit this 45-minute timeout, the timer killed
+      // its shell, dot_watcher.py and its Playwright Chromium survived as
+      // orphans, and the run sat on DOT for a further 20 minutes until those
+      // processes were killed by hand -- at which point it moved straight on
+      // to MTCTE. killTree() above should prevent that, but a scraper that
+      // resists even taskkill /T /F must not be able to stall everything
+      // behind it, so give up on the output and move on regardless.
+      setTimeout(
+        () => finish({ code: null, stdout, stderr, timedOut: true }),
+        KILL_GRACE_MS
+      ).unref();
     }, timeoutMs);
     child.stdout.on("data", (d) => (stdout += d.toString()));
     child.stderr.on("data", (d) => (stderr += d.toString()));
-    child.on("close", (code) => {
-      clearTimeout(timer);
-      resolve({ code, stdout, stderr, timedOut });
-    });
-    child.on("error", (err) => {
-      clearTimeout(timer);
-      resolve({ code: -1, stdout, stderr: stderr + String(err), timedOut });
-    });
+    child.on("close", (code) => finish({ code, stdout, stderr, timedOut }));
+    child.on("error", (err) =>
+      finish({ code: -1, stdout, stderr: stderr + String(err), timedOut })
+    );
   });
 }
 
