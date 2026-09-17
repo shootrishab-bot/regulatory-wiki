@@ -1,0 +1,38 @@
+# Python dependencies for the DAILY SYNC only -- the set the regulators
+# registered in lib/sync.ts's REGULATORS array actually import.
+#
+# Why this file exists, separately from requirements.txt:
+#
+# requirements.txt is the full developer install and includes
+# sentence-transformers, which is a transitive route to torch and, on Linux,
+# to the whole NVIDIA CUDA wheel set (nvidia-cublas, nvidia-cudnn,
+# nvidia-cusolver, nvidia-nccl, cuda-toolkit, ...) -- several gigabytes. On a
+# GitHub-hosted ubuntu-24.04 runner, installing it after `npm ci` exhausts the
+# disk: every scheduled run of .github/workflows/daily-sync.yml failed with
+#
+#   ERROR: Could not install packages due to an OSError:
+#   [Errno 28] No space left on device
+#
+# (confirmed in run 35073407515, 2026-09-16, and identically in every
+# scheduled run before it).
+#
+# Nothing the daily sync runs needs it. sentence-transformers is imported by
+# exactly two scrapers, cerc_scraper.py (optional, gated behind
+# CERC_SEMANTIC=1) and aptel_watcher.py -- and NEITHER CERC NOR APTEL IS
+# REGISTERED in lib/sync.ts, so the scheduled job has never called them.
+# Keep requirements.txt as the full install for working on those two;
+# install this file in CI.
+#
+# If CERC or APTEL is ever added to REGULATORS, do not simply switch CI back
+# to requirements.txt -- install a CPU-only torch first
+# (pip install torch --index-url https://download.pytorch.org/whl/cpu),
+# or the disk failure above comes straight back.
+
+playwright==1.61.0
+requests==2.34.2
+beautifulsoup4==4.15.0
+lxml==6.1.1
+pandas==3.0.5
+python-dateutil==2.9.0.post0
+pdfplumber==0.11.10
+numpy==2.5.1

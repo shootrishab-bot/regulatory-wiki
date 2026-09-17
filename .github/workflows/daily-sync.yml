@@ -7,10 +7,28 @@ name: Daily regulator sync
 # portable, does not depend on where this eventually gets hosted, and the
 # sibling regtracker project already schedules its ingestion exactly this way.
 #
-# KNOWN PREREQUISITE: this repo has no git remote yet, so nothing here can
-# actually fire until it is pushed to GitHub and the secrets below are set.
-# The workflow is committed ready to run, but it is NOT proven running on a
-# schedule -- only the job it invokes has been proven, by manual runs.
+# STATUS: this IS live. The repo now has a remote
+# (github.com/shootrishab-bot/regulatory-wiki) and the cron below has been
+# firing daily on schedule since at least 7 September 2026.
+#
+# Every one of those scheduled runs FAILED, and not one of them was a scraping
+# problem: the "Install Python dependencies" step below ran out of disk on the
+# runner. requirements.txt carries sentence-transformers, which drags in torch
+# and the full NVIDIA CUDA wheel set, and after npm ci there is not enough
+# space left for it:
+#
+#   ERROR: Could not install packages due to an OSError:
+#   [Errno 28] No space left on device   (run 35073407515, 2026-09-16)
+#
+# Nothing in REGULATORS imports sentence-transformers -- only cerc_scraper.py
+# and aptel_watcher.py do, and neither is registered -- so that step now
+# installs scrapers/requirements-sync.txt, the slim set the sync actually
+# needs. See that file for the full reasoning.
+#
+# STILL UNVERIFIED after this fix: that DATABASE_URL and DEEPSEEK_API_KEY are
+# set as repository secrets. "gh secret list" returned nothing on 2026-09-17,
+# and the job cannot reach Postgres or classify a document without them -- it
+# simply never got far enough to prove it either way.
 
 on:
   schedule:
@@ -74,9 +92,11 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
+      # requirements-sync.txt, NOT requirements.txt -- the latter installs
+      # torch + CUDA and fills the runner disk. See the header comment.
       - name: Install Python dependencies
         working-directory: scrapers
-        run: pip install -r requirements.txt
+        run: pip install -r requirements-sync.txt
 
       # CCI (cci_scraper/) is a standalone package with its own dependency
       # set (aiohttp, pypdf, pytesseract, pdf2image, ...) -- not covered by
