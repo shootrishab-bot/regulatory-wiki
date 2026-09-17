@@ -25,7 +25,9 @@ export function Crumbs({ items }: { items: Crumb[] }) {
       <BreadcrumbList className="text-sm">
         <BreadcrumbItem>
           {/* base-ui polymorphism uses `render`, not shadcn's older `asChild`. */}
-          <BreadcrumbLink render={<Link href="/" />}>Home</BreadcrumbLink>
+          {/* The trail starts at the library hub, not at "/": "/" is now the
+              gyaani dashboard, a level above this part of the product. */}
+          <BreadcrumbLink render={<Link href="/library" />}>Regulatory library</BreadcrumbLink>
         </BreadcrumbItem>
         {items.map((c, i) => (
           <span key={`${c.label}-${i}`} className="contents">

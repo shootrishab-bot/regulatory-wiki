@@ -6,6 +6,19 @@
 
 @theme inline {
   --color-background: var(--background);
+  --color-ans-navy: var(--ans-navy);
+  --color-ans-cyan: var(--ans-cyan);
+  --color-ans-orange: var(--ans-orange);
+  --color-ans-red: var(--ans-red);
+  --color-ans-amber: var(--ans-amber);
+  --color-ans-green: var(--ans-green);
+  --color-ans-canvas: var(--ans-canvas);
+  --color-ans-line: var(--ans-line);
+  --color-ans-ink: var(--ans-ink);
+  --color-ans-body: var(--ans-body);
+  --color-ans-muted: var(--ans-muted);
+  --color-ans-nav: var(--ans-nav);
+  --color-ans-tint: var(--ans-tint);
   --color-foreground: var(--foreground);
   --font-sans: var(--app-font-sans);
   --font-mono: var(--app-font-mono);
@@ -49,39 +62,56 @@
 }
 
 :root {
-  /* System font stacks rather than next/font/google. Google Fonts requires a
-     network fetch at BUILD time, which broke `next build` in an offline
-     environment (2026-08-03); these render instantly, avoid a layout shift,
-     and remove an external runtime dependency from a self-hosted site. */
-  --app-font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+  /* Lato is the face used throughout the firm's Horizon Scan mockups. It is
+     loaded by a plain stylesheet <link> in app/layout.tsx rather than
+     next/font/google: that helper fetches at BUILD time, which broke
+     `next build` in an offline environment (2026-08-03). A runtime link
+     simply degrades to the system stack below instead of failing the build. */
+  --app-font-sans: "Lato", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto,
     "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji",
     "Segoe UI Emoji";
   --app-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
     "Liberation Mono", monospace;
+  /* ANS palette, sampled directly from the firm's Horizon Scan mockups. Kept as
+     raw hex because these are brand colours handed to us, not a derived scale. */
+  --ans-navy: #004062;
+  --ans-cyan: #009fc3;
+  --ans-orange: #f68933;
+  --ans-red: #bf2e1a;
+  --ans-amber: #a85a0b;
+  --ans-green: #2e7d4f;
+  --ans-canvas: #f7f7f8;
+  --ans-line: #e3e4e6;
+  --ans-ink: #1a1a1a;
+  --ans-body: #636466;
+  --ans-muted: #7f7f7f;
+  --ans-nav: #eaf2f6;
+  --ans-tint: #f2f5f7;
   --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --foreground: #1a1a1a;
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --primary: #004062;
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  --muted-foreground: #636466;
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: #e3e4e6;
+  --input: #d8dade;
+  --ring: #004062;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
+  --radius: 0.25rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);

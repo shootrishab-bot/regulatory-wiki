@@ -1,164 +1,161 @@
 import Link from "next/link";
-import { Building2, Layers, Tags, FileType, ArrowRight } from "lucide-react";
+import { AnsHeader } from "@/components/ans/app-shell";
+import { Dot, Panel, SectionHeading, ansButton } from "@/components/ans/ui";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
-import { EntryList } from "@/components/entry-list";
-import {
-  listPublicEntries,
-  getPublicCountsByRegulator,
-  getDomainOverview,
-  getTagsByFacet,
-} from "@/lib/queries";
+  MATTER_QUEUE,
+  RECENT_ALERTS,
+  SCAN_SUMMARY,
+  SUBSCRIPTION_SUMMARY,
+} from "@/lib/ans/demo-data";
+import { getPublicCountsByRegulator } from "@/lib/queries";
+import { cn } from "@/lib/utils";
 
-// These pages read live Postgres counts and must reflect an admin correction
-// immediately, so they are never prerendered at build time.
+// Reads live Postgres counts for the library tile and must reflect an admin
+// correction immediately, so it is never prerendered at build time.
 export const dynamic = "force-dynamic";
 
 /**
- * Home is a HUB, not a filtered list.
+ * The gyaani dashboard. Horizon Scan is one module among several here, so
+ * this page stays a summary: what came in overnight, what is waiting on
+ * someone, and how big the tracked corpus behind it is.
  *
- * The previous version put every regulator's Subject and Instrument Type
- * vocabulary into two shared dropdowns. Those vocabularies are deliberately
- * per-regulator and are not comparable across regulators, so the combined
- * lists were long and actively misleading. Each facet now gets its own entry
- * point where the options stay scoped to one regulator at a time.
+ * The library figures are the only live data on the page and are wrapped in a
+ * try/catch on purpose -- the demo has to survive a laptop with no database,
+ * and a dead tile reads better than a 500.
  */
-export default async function HomePage() {
-  const [counts, domains, subjects, instruments, recent] = await Promise.all([
-    getPublicCountsByRegulator(),
-    getDomainOverview(),
-    getTagsByFacet("SUBJECT"),
-    getTagsByFacet("INSTRUMENT_TYPE"),
-    listPublicEntries({ page: 1 }),
-  ]);
+export default async function DashboardPage() {
+  let regulatorCount = 0;
+  let documentCount = 0;
+  let libraryAvailable = true;
 
-  const totalDocs = counts.reduce((s, c) => s + c.count, 0);
-  const totalSubjects = subjects.reduce((s, g) => s + g.tags.length, 0);
-  const totalInstruments = instruments.reduce((s, g) => s + g.tags.length, 0);
+  try {
+    const counts = await getPublicCountsByRegulator();
+    regulatorCount = counts.length;
+    documentCount = counts.reduce((sum, c) => sum + c.count, 0);
+  } catch {
+    libraryAvailable = false;
+  }
 
-  const hubs = [
+  const drafts = MATTER_QUEUE.length;
+
+  const tiles = [
     {
-      href: "/regulators",
-      icon: Building2,
-      title: "Regulators",
-      count: `${counts.length} regulators`,
-      description:
-        "Start from a regulator and see only its own subjects, instrument types and documents.",
+      label: "Open matters scanned",
+      value: SCAN_SUMMARY.openMatters.toLocaleString("en-IN"),
+      detail: `${SCAN_SUMMARY.cadence.toLowerCase()} against every followed source`,
+      href: "/horizon/matter-scanning",
     },
     {
-      href: "/domains",
-      icon: Layers,
-      title: "Domains",
-      count: `${domains.length} domains`,
-      description:
-        "Sector groupings. Telecom covers DoT and MTCTE; Information and Broadcasting covers MIB.",
+      label: "Drafts awaiting review",
+      value: String(drafts),
+      detail: "prepared overnight, nothing sent",
+      href: "/horizon/matter-scanning",
     },
     {
-      href: "/subjects",
-      icon: Tags,
-      title: "Subjects",
-      count: `${totalSubjects} subject tags`,
-      description:
-        "What a document is about, grouped by regulator because each vocabulary is its own.",
+      label: "Sources followed",
+      value: String(SUBSCRIPTION_SUMMARY.sources),
+      detail: `across ${SUBSCRIPTION_SUMMARY.regulators} regulators`,
+      href: "/horizon",
     },
     {
-      href: "/instruments",
-      icon: FileType,
-      title: "Instrument types",
-      count: `${totalInstruments} instrument tags`,
-      description:
-        "What kind of document it is - an order, a rules notification, an advisory, a press release.",
+      label: "Documents in the library",
+      value: libraryAvailable ? documentCount.toLocaleString("en-IN") : "—",
+      detail: libraryAvailable
+        ? `tagged and reviewed, across ${regulatorCount} regulators`
+        : "index unavailable on this machine",
+      href: "/library",
     },
   ];
 
   return (
-    <div className="space-y-10">
-      <section>
-        <h1 className="text-3xl font-semibold tracking-tight text-balance">
-          Indian telecom and broadcasting regulation, tracked and tagged
-        </h1>
-        <p className="mt-3 max-w-2xl text-base text-muted-foreground">
-          {totalDocs.toLocaleString("en-IN")} published documents across{" "}
-          {counts.length} regulators. Every document is tagged with a subject and an
-          instrument type, and links back to the regulator&apos;s own file.
+    <>
+      <AnsHeader title="Dashboard" />
+      <div className="space-y-6 px-8 py-7">
+        <p className="text-[17px] text-ans-body">
+          Good morning. Here is what came in overnight.
         </p>
 
-        <form action="/documents" method="get" className="mt-5 flex max-w-xl gap-2">
-          <Input
-            type="search"
-            name="q"
-            placeholder="Search document titles..."
-            aria-label="Search document titles"
-            className="h-11"
-          />
-          <button
-            type="submit"
-            className={buttonVariants({ size: "lg" })}
-          >
-            Search
-          </button>
-        </form>
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          {counts.map((c) => (
-            <Link key={c.code} href={`/regulators/${c.code}`}>
-              <Badge variant="secondary" className="cursor-pointer px-3 py-1 text-sm">
-                {c.code}
-                <span className="ml-1.5 text-muted-foreground">
-                  {c.count.toLocaleString("en-IN")}
-                </span>
-              </Badge>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {tiles.map((t) => (
+            <Link key={t.label} href={t.href}>
+              <Panel className="h-full px-6 py-5 transition-colors hover:bg-ans-tint">
+                <p className="text-[12.5px] font-bold tracking-[0.11em] text-ans-navy uppercase">
+                  {t.label}
+                </p>
+                <p className="mt-3 text-[34px] leading-none font-bold text-ans-ink">{t.value}</p>
+                <p className="mt-2 text-[15px] text-ans-body">{t.detail}</p>
+              </Panel>
             </Link>
           ))}
         </div>
-      </section>
 
-      <section>
-        <h2 className="mb-3 text-xl font-semibold tracking-tight">Browse by</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {hubs.map((h) => (
-            <Link key={h.href} href={h.href} className="group">
-              <Card className="h-full transition-colors group-hover:border-foreground/25 group-hover:bg-muted/40">
-                <CardHeader>
-                  <div className="flex items-center gap-2.5">
-                    <h.icon className="size-5 text-muted-foreground" aria-hidden />
-                    <CardTitle className="text-lg">{h.title}</CardTitle>
+        <div className="grid items-start gap-6 xl:grid-cols-2">
+          <Panel>
+            <SectionHeading
+              action={
+                <Link href="/horizon" className="text-[15px] text-ans-navy hover:underline">
+                  All alerts
+                </Link>
+              }
+            >
+              Overnight from Horizon Scan
+            </SectionHeading>
+            <div className="mt-5">
+              {RECENT_ALERTS.slice(0, 4).map((a) => (
+                <article
+                  key={a.id}
+                  className="flex items-start gap-3.5 border-t border-ans-line px-6 py-4 first:border-t-0"
+                >
+                  <Dot level={a.level} className="mt-[6px]" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[16.5px] font-bold text-ans-navy">{a.title}</p>
+                    <p className="mt-1 text-[14.5px] text-ans-body">
+                      {a.source} &middot; {a.when}
+                    </p>
                   </div>
-                  <CardDescription className="text-sm">{h.count}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">{h.description}</p>
-                  <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium">
-                    Browse
-                    <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
-                  </span>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      </section>
+                </article>
+              ))}
+            </div>
+          </Panel>
 
-      <section>
-        <div className="mb-3 flex items-baseline justify-between gap-4">
-          <h2 className="text-xl font-semibold tracking-tight">Most recent</h2>
-          <Link href="/documents" className="text-sm text-muted-foreground hover:text-foreground">
-            View all documents
-          </Link>
+          <Panel>
+            <SectionHeading
+              action={
+                <Link
+                  href="/horizon/matter-scanning"
+                  className="text-[15px] text-ans-navy hover:underline"
+                >
+                  Open the queue
+                </Link>
+              }
+            >
+              Drafts waiting on you
+            </SectionHeading>
+            <div className="mt-5">
+              {MATTER_QUEUE.map((m) => (
+                <article
+                  key={m.id}
+                  className="flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-ans-line px-6 py-4 first:border-t-0"
+                >
+                  <Dot level={m.level} className="mt-0" />
+                  <div className="min-w-[200px] flex-1">
+                    <p className="text-[16.5px] font-bold text-ans-navy">{m.client}</p>
+                    <p className="mt-1 text-[14.5px] text-ans-body">
+                      {m.matter} &middot; {m.ref}
+                    </p>
+                  </div>
+                  <Link
+                    href={`/horizon/drafts/${m.id}`}
+                    className={cn(ansButton.outline, "py-2 text-[14.5px]")}
+                  >
+                    Review draft
+                  </Link>
+                </article>
+              ))}
+            </div>
+          </Panel>
         </div>
-        <EntryList
-          entries={recent.entries.slice(0, 8)}
-          emptyMessage="No published documents yet."
-        />
-      </section>
-    </div>
+      </div>
+    </>
   );
 }
