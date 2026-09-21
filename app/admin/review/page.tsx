@@ -1,7 +1,8 @@
 import {
   listFlaggedEntries,
-  getRegulators,
-  getTagOptions,
+  getDomainOverview,
+  getTagOptionsByRegulator,
+  toList,
   getFlaggedCountsByRegulator,
   isSortKey,
   type BrowseFilters as Filters,
@@ -19,6 +20,11 @@ function one(v: string | string[] | undefined): string | undefined {
   return s && s.trim() ? s : undefined;
 }
 
+/** A repeated query parameter, as a list: ?regulator=DOT&regulator=MIB. */
+function many(v: string | string[] | undefined): string[] {
+  return toList(v);
+}
+
 export default async function ReviewQueuePage({ searchParams }: { searchParams: SearchParams }) {
   await requireAdminSession();
 
@@ -26,9 +32,10 @@ export default async function ReviewQueuePage({ searchParams }: { searchParams: 
   const rawSort = one(sp.sort);
 
   const filters: Filters = {
-    regulator: one(sp.regulator),
-    subject: one(sp.subject),
-    instrument: one(sp.instrument),
+    domain: many(sp.domain),
+    regulator: many(sp.regulator),
+    subject: many(sp.subject),
+    instrument: many(sp.instrument),
     from: one(sp.from),
     to: one(sp.to),
     q: one(sp.q),
@@ -36,13 +43,13 @@ export default async function ReviewQueuePage({ searchParams }: { searchParams: 
     page: Number(one(sp.page) ?? "1") || 1,
   };
 
-  const [{ entries, total, page, pageCount }, regulators, tagOptions, counts] =
+  const [{ entries, total, page, pageCount }, domains, tagsByRegulator, counts] =
     await Promise.all([
       listFlaggedEntries(filters),
-      getRegulators(),
-      filters.regulator
-      ? getTagOptions({ regulatorCode: filters.regulator, includeNonActive: false })
-      : Promise.resolve({ subjects: [], instrumentTypes: [] }),
+      getDomainOverview(),
+      // Keyed by regulator code so the Subject/Instrument dropdowns can swap
+      // as soon as one is picked -- see components/tag-scoped-selects.tsx.
+      getTagOptionsByRegulator(),
       getFlaggedCountsByRegulator(),
     ]);
 
@@ -87,9 +94,8 @@ export default async function ReviewQueuePage({ searchParams }: { searchParams: 
 
       <DocumentFilters
         action="/admin/review"
-        regulators={regulators}
-        subjects={tagOptions.subjects}
-        instrumentTypes={tagOptions.instrumentTypes}
+        domains={domains}
+        tagsByRegulator={tagsByRegulator}
         current={filters}
       />
 

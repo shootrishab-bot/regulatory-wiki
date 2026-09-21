@@ -22,12 +22,19 @@ export default async function DomainsPage() {
       <div className="grid gap-4 sm:grid-cols-2">
         {domains.map((d) => {
           const total = d.regulators.reduce((s, r) => s + r.published, 0);
+          // A domain page that lists exactly one regulator is a click that
+          // tells you nothing you could not already see, so where a domain
+          // holds only one the heading goes straight to that regulator.
+          const only = d.regulators.length === 1 ? d.regulators[0] : null;
           return (
             <Card key={d.id}>
               <CardHeader>
                 <div className="flex items-center justify-between gap-2">
                   <CardTitle className="text-lg">
-                    <Link href={`/domains/${d.id}`} className="hover:underline">
+                    <Link
+                      href={only ? `/regulators/${only.code}` : `/domains/${d.id}`}
+                      className="hover:underline"
+                    >
                       {d.name}
                     </Link>
                   </CardTitle>

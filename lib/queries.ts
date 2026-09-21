@@ -34,15 +34,37 @@ export function isSortKey(v: string | undefined): v is SortKey {
   return !!v && v in SORT_OPTIONS;
 }
 
+/**
+ * The four facet filters each take one value or several. A single string is
+ * kept working because most callers have exactly one -- /regulators/[code]
+ * and the tag pages pass one and mean one -- while the filter bars submit a
+ * repeated query parameter and get an array. Empty array means "no filter",
+ * the same as undefined.
+ */
+export type FilterValue = string | string[];
+
 export interface BrowseFilters {
-  regulator?: string; // Regulator.code
-  subject?: string; // TaxonomyTag.id
-  instrument?: string; // TaxonomyTag.id
+  domain?: FilterValue; // Domain.id -- every regulator in that sector
+  regulator?: FilterValue; // Regulator.code
+  subject?: FilterValue; // TaxonomyTag.id
+  instrument?: FilterValue; // TaxonomyTag.id
   from?: string; // ISO date (yyyy-mm-dd)
   to?: string; // ISO date (yyyy-mm-dd)
   q?: string; // free-text over title
   sort?: SortKey;
   page?: number; // 1-based
+}
+
+/** One value, several, or none -- always as a list, with blanks dropped. */
+export function toList(v: FilterValue | undefined): string[] {
+  if (v === undefined) return [];
+  return (Array.isArray(v) ? v : [v]).map((x) => x.trim()).filter(Boolean);
+}
+
+/** Prisma equality for one value, `in` for several, undefined for none. */
+function oneOf(values: string[]): string | { in: string[] } | undefined {
+  if (values.length === 0) return undefined;
+  return values.length === 1 ? values[0] : { in: values };
 }
 
 /**
@@ -87,8 +109,16 @@ function buildWhere(
   const sourceDocument: Prisma.SourceDocumentWhereInput = {};
   let hasSourceDocFilter = false;
 
-  if (filters.regulator) {
-    sourceDocument.regulator = { code: filters.regulator };
+  // Regulator wins over domain when both are set: naming regulators is the
+  // more specific instruction, and a regulator is always inside exactly one
+  // domain, so the pair can only ever narrow to the regulators anyway.
+  const regulators = toList(filters.regulator);
+  const domainIds = toList(filters.domain);
+  if (regulators.length > 0) {
+    sourceDocument.regulator = { code: oneOf(regulators) };
+    hasSourceDocFilter = true;
+  } else if (domainIds.length > 0) {
+    sourceDocument.regulator = { domainId: oneOf(domainIds) };
     hasSourceDocFilter = true;
   }
 
@@ -120,8 +150,10 @@ function buildWhere(
     where.sourceDocument = sourceDocument;
   }
 
-  if (filters.subject) where.subjectId = filters.subject;
-  if (filters.instrument) where.instrumentTypeId = filters.instrument;
+  const subjectIds = toList(filters.subject);
+  const instrumentIds = toList(filters.instrument);
+  if (subjectIds.length > 0) where.subjectId = oneOf(subjectIds);
+  if (instrumentIds.length > 0) where.instrumentTypeId = oneOf(instrumentIds);
 
   if (filters.q && filters.q.trim()) {
     where.title = { contains: filters.q.trim(), mode: "insensitive" };
@@ -296,6 +328,35 @@ export async function getTagOptions(opts: {
 }
 
 export type TagOption = Awaited<ReturnType<typeof getTagOptions>>["subjects"][number];
+
+export interface RegulatorTagOptions {
+  subjects: TagOption[];
+  instrumentTypes: TagOption[];
+}
+
+/**
+ * Every regulator's ACTIVE Subject and Instrument Type tags, keyed by
+ * regulator code.
+ *
+ * For the filter bars, which need to swap those two dropdowns the instant a
+ * regulator is picked rather than after a round trip -- see
+ * components/tag-scoped-selects.tsx. Sending the whole map is NOT the
+ * combined-vocabulary list the facet pages exist to avoid: the dropdowns
+ * only ever render the tags of the one regulator currently selected, so no
+ * user is ever shown two regulators' incomparable vocabularies side by side.
+ */
+export async function getTagOptionsByRegulator(): Promise<Record<string, RegulatorTagOptions>> {
+  const { subjects, instrumentTypes } = await getTagOptions({ includeNonActive: false });
+  const byCode: Record<string, RegulatorTagOptions> = {};
+  const push = (t: TagOption, key: keyof RegulatorTagOptions) => {
+    const code = t.regulator.code;
+    byCode[code] ??= { subjects: [], instrumentTypes: [] };
+    byCode[code][key].push(t);
+  };
+  for (const t of subjects) push(t, "subjects");
+  for (const t of instrumentTypes) push(t, "instrumentTypes");
+  return byCode;
+}
 
 /** Per-regulator flagged counts, for the admin queue's summary strip. */
 export async function getFlaggedCountsByRegulator() {
