@@ -150,7 +150,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; border-top: 1px
   <p class="lede">A regulatory-intelligence system for Indian regulators. It watches regulators' websites every day, collects every new circular, order, notification and report, uses an AI model to tag each one against a regulator-specific taxonomy, and publishes the result as a searchable, structured library.</p>
 
   <div class="stats">
-    <div class="stat"><div class="n">8,375</div><div class="l">documents collected and classified</div></div>
+    <div class="stat"><div class="n">8,133</div><div class="l">documents collected and classified</div></div>
     <div class="stat"><div class="n">13</div><div class="l">regulators in the live database</div></div>
     <div class="stat"><div class="n">12</div><div class="l">regulators synced automatically every day</div></div>
     <div class="stat"><div class="n">~83%</div><div class="l">classified with high confidence, no human needed</div></div>
@@ -226,7 +226,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; border-top: 1px
 <tr><td><strong>EPFO</strong></td><td>Employees' Provident Fund Organisation<br><code>epfo.gov.in</code>: circulars + archives</td><td><code>labour_watcher_epfo.py</code> → <code>run_epfo_adapter.py</code></td><td>Playwright (shared labour stack)</td><td class="num">1,897</td></tr>
 <tr><td><strong>ESIC</strong></td><td>Employees' State Insurance Corporation<br><code>esic.gov.in/circulars</code></td><td><code>labour_watcher_esic.py</code> → <code>run_esic_adapter.py</code></td><td>Playwright (shared labour stack)</td><td class="num">404</td></tr>
 <tr><td><strong>CLC</strong></td><td>Chief Labour Commissioner (Central)<br><code>clc.gov.in</code>: Circulars/Orders, Minimum Wages, Codes/Acts/Rules</td><td><code>labour_watcher_clc.py</code> → <code>run_clc_adapter.py</code></td><td>Playwright + requests</td><td class="num">52</td></tr>
-<tr><td><strong>SARALSANCHAR</strong></td><td>DoT eServices<br><code>eservices.dot.gov.in</code>: circulars, circulars archive, acts &amp; policies</td><td><code>saral-sanchar/watch.ts</code> (+ <code>scrape.ts</code>), no separate adapter</td><td>TypeScript, fetch + cheerio</td><td class="num">659</td></tr>
+<tr><td><strong>SARALSANCHAR</strong></td><td>DoT eServices<br><code>eservices.dot.gov.in</code>: circulars, circulars archive, acts &amp; policies</td><td><code>saral-sanchar/watch.ts</code> (+ <code>scrape.ts</code>), no separate adapter</td><td>TypeScript, fetch + cheerio</td><td class="num">417</td></tr>
 <tr><td><strong>DST</strong></td><td>Department of Science &amp; Technology<br><code>dst.gov.in</code> (core + calls for proposals), <code>nsdi.gov.in</code>, <code>aistic.gov.in</code></td><td><code>dst/watch.ts</code> (+ <code>dst/sources/*</code>, <code>dst/extract.ts</code>, <code>dst/fetch.ts</code>)</td><td>TypeScript, with text extraction + OCR</td><td class="num">695</td></tr>
 <tr><td><strong>DOS-ISRO</strong></td><td>Department of Space family<br><code>isro.gov.in</code>, <code>nsilindia.co.in</code>, <code>inspace.gov.in</code></td><td><code>dos_isro_watcher.py</code> (+ <code>dos_isro_scraper.py</code>) → <code>run_dos_isro_adapter.py</code></td><td>requests + IN-SPACe ServiceNow API</td><td class="num">681</td></tr>
 <tr><td><strong>CCI</strong></td><td>Competition Commission of India<br><code>cci.gov.in</code>: homepage, tenders, market studies, antitrust orders, combination notifications</td><td><code>run_cci_scrape.py</code> → <code>cci_scraper/</code> package → <code>run_cci_adapter.py</code></td><td>aiohttp + APIs, SQLite store, OCR</td><td class="num">1,343</td></tr>
@@ -341,7 +341,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; border-top: 1px
   <li><strong>Model:</strong> DeepSeek <code>deepseek-chat</code>, called through the OpenAI SDK pointed at DeepSeek's compatible endpoint (<code>lib/ingest.ts</code>).</li>
   <li><strong>Prompt:</strong> built per regulator from Postgres: every Subject, Instrument Type and Status tag, <em>with its definition</em>, plus the scraper's category hint and whether the text is present, missing, or failed to extract.</li>
   <li><strong>Rules:</strong> one Subject tag, with fallback to its parent; entity-versus-activity tie-breaks; Amended, Superseded and litigation statuses only when the document itself says so; In Force by default.</li>
-  <li><strong>Auto-accept threshold:</strong> 0.75. Below that, or when a check trips (low confidence, unreadable date, failed text extraction), the entry is flagged. About 83% of the 8,375 documents were accepted automatically.</li>
+  <li><strong>Auto-accept threshold:</strong> 0.75. Below that, or when a check trips (low confidence, unreadable date, failed text extraction), the entry is flagged. About 83% of the 8,133 documents were accepted automatically.</li>
   <li><strong>Review:</strong> admins sign in at <code>/admin/login</code> and work through <code>/admin/review</code>, confirming or correcting tags per document.</li>
 </ul>
 
@@ -426,7 +426,7 @@ python verify_normalized.py data/clc_normalized.json</code></pre>
 <tr><td><code>sync-all.ts</code>, <code>show-sync-runs.ts</code></td><td>Run the sync; inspect its history.</td></tr>
 <tr><td><code>set-admin-password.ts</code></td><td>Create or reset an admin account.</td></tr>
 <tr><td><code>remap-moved-documents.ts</code></td><td>A regulator moved its website. Points stored documents at their new URLs, by exact title, one-to-one only, so they aren't ingested again.</td></tr>
-<tr><td><code>rekey-saral-sanchar.ts</code></td><td>Moves stored Saral Sanchar circulars onto their stable IDs (already applied). Its <code>--delete-duplicates</code> option removes the leftover copies.</td></tr>
+<tr><td><code>rekey-saral-sanchar.ts</code></td><td>Moves stored Saral Sanchar circulars onto their stable IDs (already applied). Its <code>--delete-duplicates</code> option removed the 242 leftover copies (also applied).</td></tr>
 <tr><td><code>fix-local-midnight-dates.ts</code>, <code>clear-inspace-event-dates.ts</code>, <code>fix-dates-from-documents.ts</code>, <code>backfill-missing-dates.ts</code></td><td>Date repairs: timezone-shifted dates, event dates, dates read from document text.</td></tr>
 <tr><td><code>fix-amendment-status.ts</code>, <code>fix-supersede-status.ts</code>, <code>resolve-dos-isro-amendments.ts</code></td><td>Status corrections and amendment linking.</td></tr>
 <tr><td><code>reset-regulator-documents.ts</code></td><td>Taxonomy testing: deletes one regulator's documents (keeps its taxonomy) so a sample can be re-classified against a revised taxonomy.</td></tr>
@@ -452,7 +452,7 @@ python verify_normalized.py data/clc_normalized.json</code></pre>
 <ol class="steps">
   <li><strong>Repository access:</strong> add the team as collaborators, or transfer the repository to the team's GitHub organisation (Settings → General → Transfer ownership).</li>
   <li><strong>GitHub secrets:</strong> under Settings → Secrets and variables → Actions, overwrite <code>DATABASE_URL</code> and <code>DEEPSEEK_API_KEY</code> with the team's own values. Secrets don't carry over when a repository is transferred, so after a transfer they must be added fresh.</li>
-  <li><strong>Database:</strong> either transfer or share the existing Neon project (keeps all 8,375 classified documents), or create a new database and populate it with <code>migrate deploy</code>, the seed scripts, and a sync.</li>
+  <li><strong>Database:</strong> either transfer or share the existing Neon project (keeps all 8,133 classified documents), or create a new database and populate it with <code>migrate deploy</code>, the seed scripts, and a sync.</li>
   <li><strong>Admin logins:</strong> create accounts for each reviewer with <code>set-admin-password.ts</code>.</li>
   <li><strong>Local <code>.env</code>:</strong> each developer copies <code>.env.example</code> and fills in the values above.</li>
 </ol>
@@ -467,9 +467,9 @@ python verify_normalized.py data/clc_normalized.json</code></pre>
 </div>
 <div class="card">
   <h3>2. Tidy earlier duplicates</h3>
-  <p>The causes of the duplicate entries have been fixed, so no new ones are being created. Copies stored before the fix are kept in place until the team decides to remove them, because removal deletes their entries:</p>
+  <p>The causes of the duplicate entries have been fixed, so no new ones are being created. Copies stored before the fix:</p>
   <ul>
-    <li><strong>Saral Sanchar:</strong> 242 older copies. Remove with <code>npx tsx scripts/rekey-saral-sanchar.ts --apply --delete-duplicates</code> (dry-run first without the flags).</li>
+    <li><strong>Saral Sanchar:</strong> done. The 242 older copies were removed on 24 September 2026 (all were machine-classified, none human-reviewed), leaving 417 unique documents.</li>
     <li><strong>MIB:</strong> 19 older copies, from the site alternating between two forms of the same link. A small cleanup script along the same lines would handle them.</li>
   </ul>
 </div>
