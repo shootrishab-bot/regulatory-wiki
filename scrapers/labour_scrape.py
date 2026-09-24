@@ -138,67 +138,41 @@ SOURCES = {
         "archive_discovery": True,
         "pagination": {"style": "colon_path", "path_template": "/index/page:{n}"},
     },
-    # REAL, CONFIRMED 2026-08-06: the old URL (https://clc.gov.in/) is the
-    # bare homepage, not a document listing -- 0 real PDF links on it. Real
-    # nav reveals THREE separate real document sections: /clc/circulars
-    # ("Circulars/Orders"), /clc/acts-rules/acts-and-rules-0 ("Acts and
-    # Rules"), and /clc/min-wages ("Minimum Wages") -- all three now wired
-    # up below (previously only circulars was, a real undercount matching
-    # this project's MIB precedent). Real pagination confirmed via
-    # ?page=N (0-indexed) for all three; the real last page marks itself
-    # with a non-linked <li class="pager-current last"> element (confirmed
-    # directly on circulars page 1 vs. page 0, which instead shows a
-    # separate CLICKABLE "pager-last last" <a> -- the two classes
-    # together, with no <a>, is what actually means "you are on the real
-    # last page"). See is_last_page().
-    "clc": {
-        "url": "https://clc.gov.in/clc/circulars",
-        "wait_selector": "table, tbody tr",
-        "base_url": "https://clc.gov.in",
-        "archive_discovery": True,
-        "pagination": {"style": "query_param", "param": "page"},
-    },
-    # REAL, CONFIRMED 2026-08-06: same real Drupal Views-field table shape
-    # as circulars (S.No/Title/Date/Download), just a different real
-    # column ORDER (Title, Date, Download) and a different real
-    # "download" field class -- views-field-field-file-upload-wages, not
-    # views-field-field-file-circular. parse_clc() resolves columns by
-    # semantic class name already, so it is reused here (generalized to
-    # match any "field-file*" class) rather than duplicated. Real
-    # pagination: same ?page=N style, exactly 2 real pages, confirmed via
-    # the same "pager-current last" marker.
-    "clc_min_wages": {
-        "url": "https://clc.gov.in/clc/min-wages",
-        "wait_selector": "table, tbody tr",
-        "base_url": "https://clc.gov.in",
-        "archive_discovery": True,
-        "pagination": {"style": "query_param", "param": "page"},
-    },
-    # REAL, CONFIRMED 2026-08-06: genuinely different structure from the
-    # other two CLC sections -- a single-column table with NO header row
-    # (every <tr> is real data) mixing real relative detail-page slugs
-    # (e.g. "industrial-disputes-act") and real absolute PDF paths in the
-    # same column. base_url is deliberately set to this LISTING page's own
-    # URL, not the site root -- confirmed live that relative slugs only
-    # resolve correctly (200, real content) when joined against this
-    # page's own URL (see parse_clc_acts_rules() docstring).
+    # CLC, RE-POINTED 2026-09-24: clc.gov.in was relaunched on WordPress
+    # (theme build 20260922). Every old Drupal path this file used to
+    # scrape -- /clc/circulars, /clc/min-wages, /clc/acts-rules/... -- now
+    # returns a real 404, which is why CLC's daily sync had been returning
+    # 0 rows and reporting "OK". The same three sections now live at
+    # ?page_id= URLs, found from the new site's own nav menu:
     #
-    # REAL, CONFIRMED 2026-08-06 (via fetch_all_pages()'s wrap-around
-    # guard): this view's ?page=1 is a genuine SITE BUG, not a real second
-    # page -- its own pager claims <li class="pager-current last">2</li>
-    # (the same real "you are on the last page" marker CLC's other two
-    # sections use correctly), but the row content returned is byte-for-
-    # byte identical to page 0's 15 rows, confirmed by direct diff. Real
-    # total for this section is 15 documents on ONE real page. This is
-    # exactly the failure mode the wrap-around guard exists to catch even
-    # on a style with a "direct" last-page marker -- caught here despite
-    # an earlier manual spot-check (sampling only 3 titles) missing it.
+    #   151  Circulars/Orders       table.clc-downloads-table
+    #   144  Minimum Wages          table.clc-downloads-table
+    #    67  Codes, Acts and Rules  table.clc-page-links-table, one row per
+    #                               Act, each linking to a detail page that
+    #                               holds the Act's own PDF
+    #
+    # None of the three paginate any more (one table each, no pager), so
+    # there is no `pagination` config and fetch_all_pages() falls back to a
+    # single fetch_page(). The new site was still being populated when this
+    # was written: Circulars/Orders had an empty table and Minimum Wages one
+    # row, so a low count here is the site's real state, not a parser gap.
+    "clc": {
+        "url": "https://clc.gov.in/?page_id=151",
+        "wait_selector": "table",
+        "base_url": "https://clc.gov.in",
+        "archive_discovery": False,
+    },
+    "clc_min_wages": {
+        "url": "https://clc.gov.in/?page_id=144",
+        "wait_selector": "table",
+        "base_url": "https://clc.gov.in",
+        "archive_discovery": False,
+    },
     "clc_acts_rules": {
-        "url": "https://clc.gov.in/clc/acts-rules/acts-and-rules-0",
-        "wait_selector": "table, tbody tr",
-        "base_url": "https://clc.gov.in/clc/acts-rules/acts-and-rules-0",
-        "archive_discovery": True,
-        "pagination": {"style": "query_param", "param": "page"},
+        "url": "https://clc.gov.in/?page_id=67",
+        "wait_selector": "table",
+        "base_url": "https://clc.gov.in",
+        "archive_discovery": False,
     },
 }
 

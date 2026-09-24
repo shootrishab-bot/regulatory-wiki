@@ -6,6 +6,7 @@ import re
 import time
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 from typing import List, Optional, Tuple
 from urllib.parse import urljoin, urlparse, parse_qs, urlencode, urlunparse
 
@@ -359,11 +360,23 @@ async def extract_search_page(
     return await _extract_via_dom_fallback(config, page_url, source_feed)
 
 
+# A committed copy of data/cci/api_discovery.json, the output of the
+# package's own `discover` command. data/ is gitignored, so on any machine
+# that has never run `discover` -- every CI run -- the live file does not
+# exist, Combination Notifications fell through to the DOM fallback (which
+# times out on the page's date input), and the feed silently returned 0
+# items every day. The live file still wins whenever it exists, so
+# re-running `discover` keeps working as before; refresh this seed from it
+# if the endpoint ever changes.
+_DISCOVERY_SEED_PATH = Path(__file__).with_name("api_discovery.seed.json")
+
+
 def _load_discovered_endpoint(config: Config, page_url: str) -> Optional[dict]:
-    if not config.DISCOVERY_LOG_PATH.exists():
+    path = config.DISCOVERY_LOG_PATH if config.DISCOVERY_LOG_PATH.exists() else _DISCOVERY_SEED_PATH
+    if not path.exists():
         return None
     try:
-        log = json.loads(config.DISCOVERY_LOG_PATH.read_text())
+        log = json.loads(path.read_text())
     except Exception:
         return None
     entry = log.get(page_url)

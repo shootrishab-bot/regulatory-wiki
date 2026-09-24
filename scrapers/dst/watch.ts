@@ -82,14 +82,15 @@ function fileExtensionHint(url: string | null): string | null {
  * direct text-layer extraction, which is exactly what that value already
  * means to the rest of the pipeline.
  */
-async function normalize(doc: DstScrapedDocument): Promise<NormalizedDocument> {
-  const extraction = await extractDocument({
-    sourceId: doc.sourceId,
-    fileUrl: doc.fileUrl,
-    htmlUrl: doc.htmlUrl,
-  });
+function loadKnownIds(): Set<string> {
+  const file = process.env.SYNC_KNOWN_SOURCE_IDS_FILE;
+  if (!file) return new Set();
+  return new Set(JSON.parse(fs.readFileSync(file, "utf-8")) as string[]);
+}
 
-  const base: NormalizedDocument = {
+/** The listing metadata alone, with no extracted text. */
+function baseDocument(doc: DstScrapedDocument): NormalizedDocument {
+  return {
     regulator_code: doc.regulator,
     source_id: doc.sourceId,
     title: doc.title,
@@ -104,6 +105,16 @@ async function normalize(doc: DstScrapedDocument): Promise<NormalizedDocument> {
     needs_download: false,
     scraped_at: doc.scrapedAt,
   };
+}
+
+async function normalize(doc: DstScrapedDocument): Promise<NormalizedDocument> {
+  const extraction = await extractDocument({
+    sourceId: doc.sourceId,
+    fileUrl: doc.fileUrl,
+    htmlUrl: doc.htmlUrl,
+  });
+
+  const base = baseDocument(doc);
 
   if (extraction.method === "failed" || !extraction.text) {
     console.log(`  [extract] FAILED ${doc.title.slice(0, 60)} -- ${extraction.error}`);
@@ -141,10 +152,26 @@ async function main() {
   for (const d of scraped) byCluster[d.sourceCluster] = (byCluster[d.sourceCluster] ?? 0) + 1;
   console.log("By cluster:", byCluster);
 
+  // Every source failing is never DST's real state (~700 documents across
+  // four sites). Exit non-zero without overwriting the last good output, so
+  // lib/sync.ts records a failure rather than "OK, 0 rows".
+  if (scraped.length === 0) {
+    console.error(`[EMPTY] DST: 0 documents from every source cluster; not writing ${OUTPUT_PATH}.`);
+    process.exitCode = 2;
+    return;
+  }
+
+  // Documents the wiki already holds are never ingested again, so when the
+  // daily sync names them (SYNC_KNOWN_SOURCE_IDS_FILE) they are listed
+  // without text extraction. The extraction cache is gitignored, so on CI
+  // every run otherwise re-downloaded and re-OCR'd the whole corpus.
+  const known = loadKnownIds();
+  if (known.size) console.log(`${known.size} source_ids already in the wiki; skipping their extraction.`);
+
   console.log("\nExtracting (direct -> OCR fallback, cached) ...");
   const normalized: NormalizedDocument[] = [];
   for (const doc of scraped) {
-    normalized.push(await normalize(doc));
+    normalized.push(known.has(doc.sourceId) ? baseDocument(doc) : await normalize(doc));
   }
   await shutdownOcr();
 

@@ -13,13 +13,16 @@ SEBI Multi-Section Scraper (FULL-PROOF)
 made by BHANU TAK
 """
 
-# ===================== ENV HARDENING =====================
+# PLAYWRIGHT_BROWSERS_PATH is deliberately NOT forced here. This file used to
+# default it to "0" (browsers bundled inside the pip package), which only works
+# after `PLAYWRIGHT_BROWSERS_PATH=0 playwright install`; every standard
+# `playwright install` -- this repo's CI included -- puts browsers in the
+# shared cache instead, so launch failed with "Executable doesn't exist".
 import os
-os.environ.setdefault("PLAYWRIGHT_BROWSERS_PATH", "0")
 
 # ===================== IMPORTS =====================
 from playwright.sync_api import sync_playwright
-from urllib.parse import urljoin, urlparse
+from urllib.parse import parse_qs, urljoin, urlparse
 from pathlib import Path
 import csv
 import hashlib
@@ -122,13 +125,37 @@ def extract_listing(page, base_url):
     return items
 
 def find_pdf(page):
-    for sel in ["a[href*='.pdf']", "iframe[src*='.pdf']", "embed[src*='.pdf']"]:
-        el = page.query_selector(sel)
-        if el:
-            for attr in ("href", "src"):
-                v = el.get_attribute(attr)
-                if v and ".pdf" in v.lower():
-                    return urljoin(page.url, v)
+    """The document's own PDF on a SEBI detail page.
+
+    SEBI embeds it in a viewer iframe (src="../../../web/?file=/sebi_data/
+    attachdocs/....pdf"), so the iframe's `file` parameter is read FIRST and
+    resolved to the real file, not the viewer page. Anchors come after, and
+    only http(s) ones count: checked 2026-09-24, 44 of 54 rows had picked up
+    an <a> pointing at "file:///C:/Users/ITD - 4_OPRT SHUBHAM/Downloads/
+    english.pdf" -- a stray local path on SEBI's own rendered pages -- because
+    anchors used to be tried first and any ".pdf" match was accepted.
+
+    Matching is case-insensitive (the ` i` flag): some circulars embed
+    "....PDF", which a plain [src*='.pdf'] misses, falling through to an
+    unrelated sidebar anchor.
+    """
+    for el in page.query_selector_all("iframe[src*='.pdf' i], embed[src*='.pdf' i]"):
+        src = el.get_attribute("src") or ""
+        file_param = parse_qs(urlparse(src).query).get("file", [""])[0]
+        candidate = urljoin(page.url, file_param or src)
+        if candidate.lower().startswith(("http://", "https://")):
+            return candidate
+    for el in page.query_selector_all("a[href*='.pdf' i]"):
+        # Every page carries the same site-wide news ticker (<marquee> in
+        # .header-marquee) and footer, both full of unrelated PDFs -- the
+        # file:/// path above lives in that ticker, and a page with no PDF of
+        # its own (e.g. a 2006 order published as HTML) used to be given the
+        # ticker's first PDF instead. Only anchors outside them count.
+        if el.evaluate("e => !!e.closest('marquee, .header-marquee, footer, #footer-aside')"):
+            continue
+        candidate = urljoin(page.url, el.get_attribute("href") or "")
+        if candidate.lower().startswith(("http://", "https://")):
+            return candidate
     return ""
 
 # ===================== MAIN =====================

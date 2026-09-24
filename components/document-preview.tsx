@@ -37,13 +37,41 @@ export function DocumentPreview({
   const height = compact ? "h-[420px]" : "h-[680px]";
 
   // ---- no file at all -----------------------------------------------------
+  //
+  // Not every real record IS a file. IN-SPACe's Authorizations and Data
+  // Disseminator registrations (several hundred real rows) are table entries
+  // on a listing page; ISRO press releases and IN-SPACe opportunities with no
+  // attachment are a web page of their own. Saying only "no source file
+  // recorded" left those entries looking broken, so where we hold the page
+  // the record came from, it is offered here as the primary source.
+  //
+  // The copy deliberately does not say WHICH kind of page sourceUrl is: it
+  // is the section listing for some records and the record's own detail
+  // page for others, and nothing on the document tells the two apart.
   if (kind === "none") {
     return (
       <Shell>
         <Empty
           icon={<FileWarning className="size-5" aria-hidden />}
-          title="No source file recorded"
-          body="This entry has no file or reference link captured from the regulator's listing."
+          title={sourceUrl ? "No file to preview" : "No source file recorded"}
+          body={
+            sourceUrl
+              ? "The regulator publishes this entry as a web page rather than as a downloadable document, so there is nothing to preview here. The page it was captured from is the primary source."
+              : "This entry has no file or reference link captured from the regulator's listing."
+          }
+          action={
+            sourceUrl && (
+              <a
+                href={sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={buttonVariants({ size: "lg" })}
+              >
+                Open on the regulator&apos;s site
+                <ExternalLink className="size-4" aria-hidden />
+              </a>
+            )
+          }
         />
       </Shell>
     );

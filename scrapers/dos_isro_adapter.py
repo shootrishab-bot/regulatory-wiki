@@ -85,6 +85,13 @@ Per-category real shapes, all confirmed via a real live scrape
     to fetch+extract the linked page's own content, same as any other
     HTML-detail-page source in this project.
 
+    published_date is always None as of 2026-09-16 -- the scraper no
+    longer derives one from the event's date RANGE (see
+    parse_inspace_events' own docstring for the real future-dated row
+    that change fixed). normalize() also forces it to None for this
+    category, because master CSV rows scraped before the fix still carry
+    the old value and are never rewritten by the watcher.
+
   INSPACE/OPPORTUNITIES, INSPACE/OPPORTUNITIES_ARCHIVE:
     UPDATED 2026-08-19, second pass: url still points to a real
     inspace.gov.in ServiceNow sub-page (?id=...), but
@@ -180,6 +187,14 @@ def normalize(row: dict) -> NormalizedDocument:
     has_real_link = bool(url)
 
     published_date = row.get("published_date") or None
+    # An IN-SPACe event's date is when it HAPPENS, never a publication date
+    # (see dos_isro_scraper.parse_inspace_events). The scraper no longer
+    # writes one, but master CSVs scraped before that fix still carry the
+    # old end-of-event value: the watcher never rewrites a row it has
+    # already seen, and this adapter re-reads the whole CSV every run. So
+    # the rule is enforced here too, where every row passes.
+    if key == ("INSPACE", "EVENTS"):
+        published_date = None
     listing_url = _SECTION_LISTING_URLS.get(key, "")
 
     if key == ("INSPACE", "AUTHORIZATIONS"):

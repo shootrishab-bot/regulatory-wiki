@@ -30,6 +30,7 @@
  * expectation for these unverified sources exactly.
  */
 
+import { fetchHtml as fetchWithRetry } from "../fetch";
 import * as cheerio from "cheerio";
 import { createHash } from "node:crypto";
 import { REGULATOR_CODE, type DstScrapedDocument } from "../types";
@@ -42,10 +43,8 @@ const HTTP_HEADERS: Record<string, string> = {
   Accept: "text/html,application/xhtml+xml",
 };
 
-async function fetchHtml(url: string): Promise<string> {
-  const res = await fetch(url, { headers: HTTP_HEADERS, signal: AbortSignal.timeout(30_000) });
-  if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${url}`);
-  return res.text();
+function fetchHtml(url: string): Promise<string> {
+  return fetchWithRetry(url, HTTP_HEADERS);
 }
 
 function absoluteUrl(href: string | undefined): string | null {
@@ -98,11 +97,24 @@ function dedupeBySourceId(docs: DstScrapedDocument[]): DstScrapedDocument[] {
   return [...seen.values()];
 }
 
+// Checked 2026-09-24: https://www.nsdi.gov.in stopped answering (connection
+// timeout) while plain http:// on the same host still serves the page. The
+// canonical https URL stays the listing URL, because source_ids are hashed
+// from it -- switching it would re-ingest every NSDI document already stored
+// as a new one -- and http is only where the bytes are fetched from.
+const HTTP_FALLBACK_URL = `http://www.nsdi.gov.in${PAGE_PATH}`;
+
 export async function scrapeNsdi(): Promise<DstScrapedDocument[]> {
   const url = `${BASE_URL}${PAGE_PATH}`;
   console.log(`[scrape:nsdi] fetching ${url}`);
   try {
-    const html = await fetchHtml(url);
+    let html: string;
+    try {
+      html = await fetchHtml(url);
+    } catch (err) {
+      console.log(`[scrape:nsdi] ${url} failed (${(err as Error).message}); trying ${HTTP_FALLBACK_URL}`);
+      html = await fetchHtml(HTTP_FALLBACK_URL);
+    }
     const rows = dedupeBySourceId(parseHomepage(html, url));
     console.log(`[scrape:nsdi] ${rows.length} real documents`);
     return rows;

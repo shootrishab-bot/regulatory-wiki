@@ -3,6 +3,7 @@ from pathlib import Path
 from datetime import datetime
 from urllib.parse import urlparse
 import argparse
+import os
 import hashlib
 import csv
 import json
@@ -816,15 +817,31 @@ def main():
     parser.add_argument(
         "--mode",
         choices=["backlog", "daily"],
-        default="backlog",
-        help="backlog (default): expand every topic page in full. "
-             "daily: stop expanding a topic page once its newest-first "
-             "cards reach an already-known document.",
+        default=None,
+        help="backlog (default when run by hand): expand every topic page in "
+             "full. daily (default under the sync): stop expanding a topic "
+             "page once its newest-first cards reach an already-known document.",
     )
     args = parser.parse_args()
 
     ensure_csv()
     existing_ids = load_existing_ids()
+
+    # Under lib/sync.ts, SYNC_KNOWN_SOURCE_IDS_FILE names every DoT
+    # source_id already in Postgres -- the same sha1(pdf_url)[:16] as
+    # make_id(), so they are directly comparable. They count as known, and
+    # the run defaults to daily mode. On CI the master CSV is gitignored and
+    # never exists, so without this every scheduled run was a full backlog
+    # crawl: over an hour from a clean state on 2026-09-24, against the
+    # sync's 45-minute scrape timeout.
+    known_file = os.environ.get("SYNC_KNOWN_SOURCE_IDS_FILE")
+    if known_file:
+        with open(known_file, encoding="utf-8") as f:
+            existing_ids |= set(json.load(f))
+        print(f"{len(existing_ids)} ids known (master CSV + wiki database)")
+    if args.mode is None:
+        args.mode = "daily" if known_file else "backlog"
+    print(f"Mode: {args.mode}")
 
     scraped = []
     blocked = []

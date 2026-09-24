@@ -23,8 +23,11 @@ marker per regulator -- see lib/sync.ts's REGULATORS entries for EPFO/ESIC/CLC.
 
 import asyncio
 import csv
+import re
 import sys
+from urllib.parse import urljoin
 
+import requests
 from playwright.async_api import async_playwright
 
 import labour_scrape as ls
@@ -94,12 +97,46 @@ async def scrape_sources_to_documents(source_keys: list[str]) -> list[dict]:
 
             print(f"[{key}] {source_docs} real documents parsed", file=sys.stderr)
 
+        if "clc_acts_rules" in source_keys:
+            resolve_clc_act_pdfs(documents)
+
         await browser.close()
 
     if any_blocked:
         print("[BLOCKED] at least one source for this regulator was blocked this run -- see detail above", file=sys.stderr)
 
     return documents
+
+
+_PDF_HREF = re.compile(r'href="([^"]+?\.pdf)"', re.I)
+
+
+def resolve_clc_act_pdfs(documents: list[dict]) -> None:
+    """Swap each CLC Act's detail-page URL for the PDF that page links to.
+
+    parse_clc_acts_rules() can only see the listing, whose rows link to a
+    per-Act detail page (?page_id=N) rather than to a file; the PDF is one
+    hop further. Done here with plain requests because the detail pages are
+    static WordPress HTML. A detail page with no PDF keeps its own URL, so
+    the document is still recorded and ingest.ts's extraction simply
+    degrades to needsReview, as it already does for non-PDF links.
+    """
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"}
+    for doc in documents:
+        url = doc.get("source_url") or ""
+        if doc.get("regulator") != "CLC" or "page_id=" not in url:
+            continue
+        try:
+            resp = requests.get(url, headers=headers, timeout=30)
+            resp.raise_for_status()
+        except requests.RequestException as e:
+            print(f"[WARN] clc_acts_rules: could not open {url}: {e}", file=sys.stderr)
+            continue
+        match = next((m for m in _PDF_HREF.finditer(resp.text) if "/wp-content/uploads/" in m.group(1)), None)
+        if match:
+            doc["source_url"] = urljoin(url, match.group(1))
+        else:
+            print(f"[WARN] clc_acts_rules: no PDF on {url}; keeping the detail page", file=sys.stderr)
 
 
 def write_master_csv(path: str, documents: list[dict]):
@@ -124,6 +161,22 @@ async def run_regulator_watcher(regulator_label: str, source_keys: list[str], ou
     dupes = len(urls) - len(set(urls))
     if dupes:
         print(f"WARNING: {dupes} documents share a source_url with another real document in this run", file=sys.stderr)
+
+    # Zero documents across EVERY source is never this regulator's real
+    # state -- each has hundreds of documents, or at least a handful. It
+    # means every page was blocked, errored, or changed shape (CLC's site
+    # relaunch in September 2026 did exactly this and the sync reported
+    # "OK, 0 rows" for days). Exit non-zero WITHOUT touching the CSV, so
+    # lib/sync.ts records ERROR/BLOCKED instead of a confident "nothing new"
+    # and the previous good CSV is not overwritten with an empty one.
+    if not documents:
+        print(
+            f"[EMPTY] {regulator_label}: 0 documents parsed across all sources "
+            f"({', '.join(source_keys)}); not writing {output_csv}. Blocked, "
+            f"unreachable, or the site layout changed -- see the lines above.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
 
     write_master_csv(output_csv, documents)
     print(f"Wrote {len(documents)} real documents to {output_csv}", file=sys.stderr)

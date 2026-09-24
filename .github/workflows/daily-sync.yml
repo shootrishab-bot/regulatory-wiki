@@ -46,7 +46,16 @@ concurrency:
 
 jobs:
   sync:
-    runs-on: ubuntu-latest
+    # GitHub-hosted runners sit on US datacenter IPs, and several Indian
+    # government sites refuse or silently empty those: EPFO has answered
+    # every scheduled run with HTTP 403 since at least 2026-09-19, and
+    # ESIC and MTCTE returned nothing, while all three scrape fully from an
+    # Indian connection (verified 2026-09-24). Set the repository variable
+    # SYNC_RUNNER to a self-hosted runner's label (one on an Indian IP) to
+    # move the job there; unset, it stays on ubuntu-latest. A self-hosted
+    # runner needs passwordless sudo for the apt-get steps below, or those
+    # packages preinstalled.
+    runs-on: ${{ vars.SYNC_RUNNER || 'ubuntu-latest' }}
     # 12 regulators now (was 3 when this comment was first written; FIU-IND
     # added 2026-08-25, MERC 2026-09-14), each new document costing a DeepSeek
     # call. MERC is in REGULATORS but is deliberately EXCLUDED from scheduled
@@ -75,7 +84,12 @@ jobs:
     # large batch of new documents, not because a routine CCI run is
     # expected to need anywhere near it. The default 360-minute cap is still
     # the outer bound if this proves short.
-    timeout-minutes: 120
+    #
+    # Raised to 150 on 2026-09-24: DoT alone now has a 90-minute scrape
+    # timeout (its measured clean-state run is ~66 minutes, see its entry in
+    # lib/sync.ts), and a full manual run of the other ten regulators took
+    # 16 minutes the same day, plus ~10 minutes of setup above.
+    timeout-minutes: 150
 
     steps:
       - uses: actions/checkout@v4
@@ -147,7 +161,15 @@ jobs:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
         # Exits non-zero only if EVERY regulator errored. A regulator being
         # blocked is a recorded outcome, not a job failure -- see scripts/sync-all.ts.
-        run: npx tsx scripts/sync-all.ts --trigger schedule
+        #
+        # xvfb-run: dot_watcher.py launches Chromium HEADED (headless=False,
+        # parked off-screen), which is how it was validated against
+        # dot.gov.in. A runner has no display, so every scheduled DOT run
+        # from 2026-09-16 on died at browser launch ("Scraper exited 1" with
+        # only Playwright's "<gracefully close end>" in the log). xvfb-run
+        # gives it a virtual one; `playwright install --with-deps` above
+        # already installs xvfb. Headless scrapers are unaffected.
+        run: xvfb-run -a npx tsx scripts/sync-all.ts --trigger schedule
 
       - name: Show recent sync history
         if: always()

@@ -86,6 +86,23 @@ def parse_table(html, category, source_url):
     if not table:
         return [], 0
 
+    # Columns are found by header text. Circulars (verified 2026-09-24) has
+    # six columns in a different order from Acts/Rules/Regulations' seven --
+    # no Reference No, and Sub Title before Last Updated -- so the old fixed
+    # positions (and its `len(tds) < 7` guard) silently skipped every
+    # circular: "total available = 21, checked = 0".
+    headers = [th.get_text(" ", strip=True).lower() for th in table.select("thead th")]
+
+    def col(name):
+        return next((i for i, h in enumerate(headers) if name in h), None)
+
+    desc_i = col("short description")
+    updated_i = col("last updated")
+    ref_i = col("reference")
+    docs_i = col("documents")
+    if desc_i is None or docs_i is None:
+        return [], 0
+
     rows = table.select("tbody tr")
     total_rows = len(rows)
 
@@ -93,26 +110,27 @@ def parse_table(html, category, source_url):
 
     for tr in rows[:TOP_N]:
         tds = tr.find_all("td")
-        if len(tds) < 7:
+        if len(tds) <= max(desc_i, docs_i):
             continue
 
-        short_desc = tds[2].get_text(strip=True)
+        def cell(i):
+            return tds[i].get_text(strip=True) if i is not None and i < len(tds) else ""
 
-        detail_link = None
-        detail_a = tds[4].select_one("a[href]")
-        if detail_a:
-            detail_link = detail_a["href"]
+        short_desc = cell(desc_i)
+
+        detail_a = tr.select_one("a[href*='document-detail']")
+        detail_link = detail_a["href"] if detail_a else None
 
         pdf_link = None
         pdf_filename = None
         file_size = None
 
-        pdf_a = tds[6].select_one("a[href*='download=true']")
+        pdf_a = tds[docs_i].select_one("a[href*='download=true']")
         if pdf_a:
             pdf_link = pdf_a["href"]
             pdf_filename = pdf_a.get_text(strip=True)
 
-            size_p = tds[6].select_one("p.text-muted")
+            size_p = tds[docs_i].select_one("p.text-muted")
             if size_p:
                 file_size = size_p.get_text(strip=True)
 
@@ -126,8 +144,8 @@ def parse_table(html, category, source_url):
             "id": doc_id,
             "category": category,
             "short_description": short_desc,
-            "reference_no": tds[5].get_text(strip=True),
-            "last_updated": tds[3].get_text(strip=True),
+            "reference_no": cell(ref_i),
+            "last_updated": cell(updated_i),
             "detail_page": detail_link,
             "pdf_link": pdf_link,
             "pdf_filename": pdf_filename,

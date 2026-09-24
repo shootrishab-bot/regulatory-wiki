@@ -69,6 +69,15 @@ async function main() {
   const scraped = await scrapeAll();
   console.log(`Scraped ${scraped.length} real documents total (deduped by sourceId).`);
 
+  // Every feed failing is never the site's real state (it lists ~400
+  // documents). Exit non-zero without overwriting the last good output, so
+  // lib/sync.ts records a failure rather than "OK, 0 rows".
+  if (scraped.length === 0) {
+    console.error(`[EMPTY] ${REGULATOR_CODE}: 0 documents from every feed; not writing ${OUTPUT_PATH}.`);
+    process.exitCode = 2;
+    return;
+  }
+
   const byFeed: Record<string, number> = {};
   for (const d of scraped) byFeed[d.sourceFeed] = (byFeed[d.sourceFeed] ?? 0) + 1;
   console.log("By feed:", byFeed);

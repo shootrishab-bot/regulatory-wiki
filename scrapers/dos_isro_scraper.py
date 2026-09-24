@@ -696,10 +696,25 @@ def parse_inspace_events(json_data: dict) -> List[Dict]:
     live). Each event's real date is a RANGE in an irregular, inconsistent
     format ("14 Sept - 17 Sept, 2026", "13 July - 23 August 2026", "12
     August -18 August, 2026" -- confirmed live, no two formatted the same
-    way) -- the event's END date (the last day-month-year fragment found)
-    is used as published_date, since that's the more defensible single
-    reference point for a multi-day event and is reliably extractable
-    across all 3 real formats, confirmed."""
+    way).
+
+    published_date is deliberately None. REVISED 2026-09-16, after a real
+    defect this produced: the event's END date used to be stored as
+    published_date, which put "FICCI Business Mission to WSBW & SDSS 2026"
+    into the corpus dated 2026-09-17 -- a date in the FUTURE, which tripped
+    the UI's "unverified date" badge (components/entry-list.tsx) and
+    presented a scheduled event as though it were a document published on
+    its own closing day. An event's date range is when the event HAPPENS,
+    which is not a publication date and cannot be substituted for one: a
+    future-dated conference is not a regulatory document issued in the
+    future. IN-SPACe publishes no announcement date for these rows, so the
+    honest value is None -- the same choice already made for every other
+    real IN-SPACe section with no per-document date (Publications, NGP,
+    Opportunities).
+
+    The real range is NOT lost: it stays in published_date_raw (written to
+    the master CSV and carried into the record's own text), so a human
+    reading the entry still sees exactly what IN-SPACe published."""
     documents = []
     events = _find_data_list(json_data, "name") or []
     for ev in events:
@@ -707,14 +722,13 @@ def parse_inspace_events(json_data: dict) -> List[Dict]:
         if not name:
             continue
         date_raw = ev.get("date") or ""
-        candidates = re.findall(r"\d{1,2}\s*[A-Za-z]+\s*,?\s*\d{4}", date_raw)
-        published_date = parse_date_from_text(candidates[-1]) if candidates else None
         link = ev.get("linky") or ev.get("link") or ""
         url = link if link.startswith("http") else (urljoin(INSPACE_BASE_URL, link) if link else None)
         documents.append({
             "title": name,
             "url": url,
-            "published_date": published_date,
+            "published_date": None,  # an event date is not a publication
+                                      # date -- see docstring
             "published_date_raw": date_raw,
         })
     return documents
@@ -890,4 +904,26 @@ if __name__ == "__main__":
     assert len(docs) == 1
     assert docs[0]["published_date"] == "2026-07-16"
     assert docs[0]["authorization_number"] == "PMA/IN-SPACe/AUTH/2026/139"
+    print("OK")
+
+    SAMPLE_INSPACE_EVENTS_JSON = {
+        "result": {
+            "containers": [{"rows": [{"columns": [{"widgets": [{"widget": {
+                "data": {"events": [{
+                    "name": "FICCI Business Mission to World Space Business Week (WSBW) 2026",
+                    "date": "14 Sept - 17 Sept, 2026",
+                    "linky": "/inspace?id=ficci_event_paris",
+                }]}
+            }}]}]}]}]
+        }
+    }
+    print("Testing IN-SPACe Events parser with sample JSON...")
+    docs = parse_inspace_events(SAMPLE_INSPACE_EVENTS_JSON)
+    assert len(docs) == 1
+    # An event's date range is when it HAPPENS, not when anything was
+    # published -- storing its end date put a future-dated row in the
+    # corpus. The real range stays available as raw text.
+    assert docs[0]["published_date"] is None
+    assert docs[0]["published_date_raw"] == "14 Sept - 17 Sept, 2026"
+    assert docs[0]["url"] == "https://www.inspace.gov.in/inspace?id=ficci_event_paris"
     print("OK")

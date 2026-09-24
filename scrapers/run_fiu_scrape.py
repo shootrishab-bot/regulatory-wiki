@@ -26,10 +26,29 @@ run_fiu_adapter.py reads that and produces the normalized JSON.
 
 import argparse
 import asyncio
+import json
 import os
 import sys
 
 PACKAGE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fiu_scraper")
+
+
+def load_known_ids() -> set:
+    """source_ids the daily sync already has in Postgres for this regulator.
+
+    lib/sync.ts writes them to a JSON file and names it in
+    SYNC_KNOWN_SOURCE_IDS_FILE before running this script; the package skips
+    those items before downloading anything. Unset (a manual run) means
+    nothing is excluded and the package's own SQLite-based skip applies as
+    before.
+    """
+    path = os.environ.get("SYNC_KNOWN_SOURCE_IDS_FILE")
+    if not path:
+        return set()
+    with open(path, encoding="utf-8") as f:
+        ids = set(json.load(f))
+    print(f"{len(ids)} source_ids already in the wiki database will be skipped.")
+    return ids
 
 
 def main():
@@ -51,7 +70,7 @@ def main():
         print("DEEPSEEK_API_KEY not set -- cannot classify. Aborting.", file=sys.stderr)
         sys.exit(1)
 
-    records = asyncio.run(run_scrape(config, limit=args.limit))
+    records = asyncio.run(run_scrape(config, limit=args.limit, exclude_ids=load_known_ids()))
     print(f"FIU-IND scrape complete: {len(records)} real items processed.")
 
 

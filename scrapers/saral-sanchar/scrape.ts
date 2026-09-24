@@ -43,17 +43,13 @@ const CIRCULARS_PATH = "/circular-notifications-others";
 const CIRCULARS_ARCHIVE_PATH = "/circular-notifications-others-archive";
 const ACTS_AND_POLICIES_PATH = "/act-and-rules";
 
-// REAL, CONFIRMED live 2026-08-14 via the page's own pager markup (`<a ...
-// title="Go to last page">`): circulars' real last page is ?page=21 (22
-// pages, 0-indexed), NOT ?page=20/21-pages as originally assumed by a
-// pre-network-access reconstruction -- an off-by-one that would have
-// silently dropped the real last page's rows every run. Re-check this each
-// run; the site will grow past it.
-const CIRCULARS_MAX_PAGE_DEFAULT = 21;
-// REAL, CONFIRMED live 2026-08-14, same pager check: the separate real
-// Archive feed (linked from the main circulars page's own "Archive" button,
-// previously not scraped at all) has 2 real pages (0-1).
-const CIRCULARS_ARCHIVE_MAX_PAGE_DEFAULT = 1;
+// Fallback last-page indexes, used only when page 0's pager cannot be read.
+// The real value is read from the live pager on every run (readLastPage()):
+// these used to be the ONLY source, hardcoded at 21 and 1 on 2026-08-14,
+// and by 2026-09-24 the site had grown to ?page=22 and ?page=2, so every run
+// was silently dropping the newest-overflowed last page of each feed.
+const CIRCULARS_MAX_PAGE_DEFAULT = 22;
+const CIRCULARS_ARCHIVE_MAX_PAGE_DEFAULT = 2;
 
 const HTTP_HEADERS: Record<string, string> = {
   "User-Agent": "Mozilla/5.0 (compatible; TrilegalRegulatoryWikiBot/1.0; +internal-research-tool)",
@@ -65,10 +61,55 @@ export function makeSourceId(regulator: string, sourceUrl: string, title: string
   return createHash("sha1").update(`${regulator}|${sourceUrl}|${title}`).digest("hex");
 }
 
+/**
+ * Statuses that mean "the site is refusing us", as opposed to a page that
+ * does not exist. Printed with the "[BLOCKED]" marker lib/sync.ts matches on.
+ */
+const BLOCK_STATUSES = new Set([401, 403, 429]);
+
+export class BlockedError extends Error {}
+
+// Pauses before each retry. The daily CI run saw pages 19-21 of circulars
+// come back 403 after 18 clean pages in a row (sync runs 2026-09-20..23),
+// the shape of a rate limit rather than a hard block, so a blocked or
+// failed page gets two slower retries before it is given up on.
+const RETRY_PAUSES_MS = [5_000, 20_000];
+
 async function fetchHtml(url: string): Promise<string> {
-  const res = await fetch(url, { headers: HTTP_HEADERS, signal: AbortSignal.timeout(30_000) });
-  if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${url}`);
-  return res.text();
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt <= RETRY_PAUSES_MS.length; attempt++) {
+    if (attempt > 0) await sleep(RETRY_PAUSES_MS[attempt - 1]);
+    try {
+      const res = await fetch(url, { headers: HTTP_HEADERS, signal: AbortSignal.timeout(30_000) });
+      if (res.ok) return res.text();
+      lastError = BLOCK_STATUSES.has(res.status)
+        ? new BlockedError(`HTTP ${res.status} fetching ${url}`)
+        : new Error(`HTTP ${res.status} fetching ${url}`);
+      if (res.status === 404) break; // retrying a missing page will not help
+    } catch (err) {
+      lastError = err as Error;
+    }
+  }
+  throw lastError ?? new Error(`failed fetching ${url}`);
+}
+
+/** Report one failed fetch, tagging refusals with the "[BLOCKED]" marker. */
+function reportFailure(label: string, err: unknown) {
+  const message = (err as Error).message;
+  if (err instanceof BlockedError) console.error(`[BLOCKED] ${label}: ${message}`);
+  else console.error(`[ERROR] ${label}: ${message}`);
+}
+
+/**
+ * The real last page index from the pager's own "Go to last page" link
+ * (`<a href="?page=22" title="Go to last page">`), or null if the page has
+ * no pager.
+ */
+function readLastPage(html: string): number | null {
+  const $ = cheerio.load(html);
+  const href = $('a[title="Go to last page"]').attr("href");
+  const m = href?.match(/[?&]page=(\d+)/);
+  return m ? Number(m[1]) : null;
 }
 
 function normaliseDate(raw: string | null | undefined): string | null {
@@ -103,6 +144,11 @@ function dedupeBySourceId(docs: ScrapedDocument[]): ScrapedDocument[] {
 // and its separate Archive variant (same real table shape, own pager, linked
 // via the main feed's "Archive" button -- see module docstring).
 // ----------------------------------------------------------------------------
+
+/** A circulars page URL without its ?page=N -- the feed it belongs to. */
+export function circularsFeedUrl(pageUrl: string): string {
+  return pageUrl.replace(/\?page=\d+$/, "");
+}
 
 function parseCircularsPage(html: string, pageUrl: string, sourceFeed: SourceFeed): ScrapedDocument[] {
   const $ = cheerio.load(html);
@@ -146,11 +192,22 @@ function parseCircularsPage(html: string, pageUrl: string, sourceFeed: SourceFee
 
       if (!title) return;
 
+      // The id is keyed to the FEED (the page URL without ?page=N) plus the
+      // file, never to the page number. It used to hash pageUrl itself, and
+      // this feed is newest-first: each new circular pushes every older one
+      // down a slot, so rows crossed page boundaries, got a new id, and were
+      // ingested again. By 2026-09-24 that had stored 643 rows for ~400 real
+      // documents. Title alone is not unique within a feed (387 distinct
+      // titles for 402 rows), title + file is. listingUrl is the feed for
+      // the same reason: the page a row sat on is stale within weeks.
+      // scripts/rekey-saral-sanchar.ts moved the stored rows onto this id.
+      const feedUrl = circularsFeedUrl(pageUrl);
+
       out.push({
-        sourceId: makeSourceId(REGULATOR_CODE, pageUrl, title),
+        sourceId: makeSourceId(REGULATOR_CODE, feedUrl, `${title}|${fileUrl ?? ""}`),
         regulator: REGULATOR_CODE,
         sourceFeed,
-        listingUrl: pageUrl,
+        listingUrl: feedUrl,
         siteCategory: category || null,
         issuedBy: issuedBy || null,
         servicesPath,
@@ -182,7 +239,8 @@ async function scrapeCircularsLikeFeed(
   opts: ScrapeCircularsOptions,
   defaultMaxPage: number
 ): Promise<ScrapedDocument[]> {
-  const { maxPage = defaultMaxPage, startPage = 0, delayMs = 750 } = opts;
+  const { startPage = 0, delayMs = 750 } = opts;
+  let maxPage = opts.maxPage ?? defaultMaxPage;
   const all: ScrapedDocument[] = [];
 
   for (let page = startPage; page <= maxPage; page++) {
@@ -190,11 +248,18 @@ async function scrapeCircularsLikeFeed(
     console.log(`[scrape:${sourceFeed}] fetching page ${page}/${maxPage}: ${url}`);
     try {
       const html = await fetchHtml(url);
+      if (page === 0 && opts.maxPage === undefined) {
+        const live = readLastPage(html);
+        if (live !== null && live !== maxPage) {
+          console.log(`[scrape:${sourceFeed}] pager says last page is ${live} (default was ${maxPage})`);
+          maxPage = live;
+        }
+      }
       const rows = parseCircularsPage(html, url, sourceFeed);
       console.log(`[scrape:${sourceFeed}] page ${page}: ${rows.length} rows`);
       all.push(...rows);
     } catch (err) {
-      console.error(`[scrape:${sourceFeed}] failed on page ${page}:`, (err as Error).message);
+      reportFailure(`${sourceFeed} page ${page}`, err);
     }
     if (page < maxPage) await sleep(delayMs);
   }
@@ -321,10 +386,17 @@ export async function scrapeActsAndPolicies(): Promise<ScrapedDocument[]> {
 }
 
 export async function scrapeAll(opts: ScrapeCircularsOptions = {}): Promise<ScrapedDocument[]> {
-  const [circulars, archive, acts] = await Promise.all([
-    scrapeCircularsFeed(opts),
-    scrapeCircularsArchiveFeed(opts),
-    scrapeActsAndPolicies(),
-  ]);
-  return dedupeBySourceId([...circulars, ...archive, ...acts]);
+  // Acts & Policies is one page; a failure there must cost only that feed,
+  // not the circulars already scraped (it used to reject the whole
+  // Promise.all and exit 1 with nothing written).
+  const acts = scrapeActsAndPolicies().catch((err) => {
+    reportFailure("acts-and-policies", err);
+    return [] as ScrapedDocument[];
+  });
+  // The two paginated feeds run one after the other rather than in
+  // parallel: they hit the same host, and doubling the request rate is
+  // exactly what the 403s on the later circulars pages were responding to.
+  const circulars = await scrapeCircularsFeed(opts);
+  const archive = await scrapeCircularsArchiveFeed(opts);
+  return dedupeBySourceId([...circulars, ...archive, ...(await acts)]);
 }

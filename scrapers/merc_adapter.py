@@ -39,6 +39,8 @@ Run:
 
 from __future__ import annotations
 
+from datetime import date
+
 from normalized_document import NormalizedDocument
 
 REGULATOR_CODE = "MERC"
@@ -134,6 +136,25 @@ def _title(row: dict) -> str:
     return title
 
 
+def _published_date(row: dict) -> str | None:
+    """The feed's date, except a hearing that has not happened yet.
+
+    The Hearings feed has no notice-issue date; its only date is the
+    hearing's own (the epoch timestamp beside "Thu 29/10/2026 11:00 AM").
+    For a past hearing that is a fair stand-in -- the notice went out before
+    it -- but a scheduled one is dated in the FUTURE, which no published
+    document can be: 68 rows on 2026-09-24, every one tripping the UI's
+    "unverified date" badge. Same call as IN-SPACe events
+    (dos_isro_scraper.parse_inspace_events): the date something HAPPENS is
+    not when anything was published, so a future one is left out rather than
+    presented as a publication date. hearing_date stays in merc_raw.json.
+    """
+    published = row.get("published_date")
+    if row.get("feed") == "hearings" and published and published > date.today().isoformat():
+        return None
+    return published
+
+
 def normalize(row: dict) -> NormalizedDocument:
     _hearing_status_note(row)
     return NormalizedDocument(
@@ -141,7 +162,7 @@ def normalize(row: dict) -> NormalizedDocument:
         source_id=row["source_id"],
         title=_title(row),
         source_url=row.get("source_url", ""),
-        published_date=row.get("published_date"),
+        published_date=_published_date(row),
         file_url=row.get("file_url"),
         file_extension_hint=_file_extension_hint(row),
         category_hint=_category_hint(row),

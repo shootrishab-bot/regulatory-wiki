@@ -131,7 +131,24 @@ def _parse_date(raw: str) -> str | None:
             return f"{year}-{month.zfill(2)}-{day.zfill(2)}"
         except ValueError:
             return raw
+    # E-books/handbooks carry only a month ("May-2025"). Passed through raw,
+    # ingest.ts's `new Date("May-2025")` reads it as LOCAL midnight, so the
+    # same row was stored as 2025-04-30T18:30Z from an IST machine and
+    # 2025-05-01T00:00Z from CI. The first of the month is written out
+    # explicitly instead, so every machine stores the same date.
+    month_year = re.fullmatch(r"([A-Za-z]{3})[a-z]*[\s-]+(\d{4})", raw.strip())
+    if month_year and month_year.group(1).title() in _MONTHS:
+        return f"{month_year.group(2)}-{_MONTHS[month_year.group(1).title()]:02d}-01"
+    # Citizen charters carry only a year ("2025"). A year says which charter
+    # it is, not when it was published, and inventing 1 January would sort it
+    # as a precise date, so it is left undated.
+    if re.fullmatch(r"\d{4}", raw.strip()):
+        return None
     return raw
+
+
+_MONTHS = {m: i for i, m in enumerate(
+    ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], start=1)}
 
 
 def _extension_from_link(url: str | None) -> str | None:

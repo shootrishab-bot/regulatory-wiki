@@ -6,6 +6,7 @@ import json
 import logging
 import re
 import os
+import sys
 from datetime import datetime, timezone
 from urllib.parse import urljoin
 
@@ -305,6 +306,16 @@ def main():
         browser.close()
 
     logging.info("Total unique links collected across all sources: %d", len(collected))
+
+    # Nothing collected from ANY source is never the site's real state (it
+    # lists ~200 documents); it means the site refused or failed to render.
+    # Every CI run from 2026-09-16 on hit this, exited 0 without ever
+    # creating mtcte_master.csv, and the adapter then crashed on the missing
+    # file -- which was reported as an adapter bug rather than the real
+    # cause. Fail here, where the cause is.
+    if not collected:
+        logging.error("[EMPTY] 0 documents collected from every MTCTE source -- blocked, unreachable, or the page layout changed")
+        sys.exit(2)
 
     items = []
     for pdf_link, data in collected.items():

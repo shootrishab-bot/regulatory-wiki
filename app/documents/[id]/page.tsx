@@ -15,6 +15,7 @@ import {
   IssuingEntityBadge,
 } from "@/components/entry-list";
 import { getEntry } from "@/lib/queries";
+import { classifyFileUrl } from "@/lib/file-kind";
 
 type Params = Promise<{ id: string }>;
 
@@ -60,8 +61,10 @@ export default async function DocumentDetailPage({ params }: { params: Params })
       {isUnverifiedDate(doc.publishedDate) && (
         <p className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
           <span className="font-medium">Unverified date.</span> The published date recorded for
-          this document is later than today, which cannot be correct. Treat it as unreliable;
-          the linked source file is authoritative.
+          this document is later than today, which cannot be correct for a published document.
+          It is shown exactly as the regulator published it rather than corrected to a guess, so
+          the date may be an error at the source. Treat it as unreliable and check the original
+          below.
         </p>
       )}
 
@@ -73,7 +76,11 @@ export default async function DocumentDetailPage({ params }: { params: Params })
             sourceUrl={doc.sourceUrl}
           />
 
-          {doc.sourceUrl && doc.sourceUrl !== doc.fileUrl && (
+          {/* Only when there IS a file. With none, the preview pane above
+              already links this same page as the primary source, and "the
+              regulator's own file is the authoritative version" would
+              contradict its "nothing to preview". */}
+          {doc.sourceUrl && doc.sourceUrl !== doc.fileUrl && classifyFileUrl(doc.fileUrl) !== "none" && (
             <p className="text-sm text-muted-foreground">
               Listed on{" "}
               <a

@@ -1,6 +1,7 @@
 from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 import re
+import sys
 import time
 import hashlib
 import pandas as pd
@@ -41,7 +42,10 @@ def extract_date_from_title(title):
     if not m:
         return ""
     try:
-        return dtparser.parse(m.group()).date().isoformat()
+        # dayfirst: CCI writes DD/MM/YYYY. dateutil defaults to month-first,
+        # which read "12/05/2026" (12 May) as 5 December -- ten press
+        # releases dated in the future on a 2026-09-24 run.
+        return dtparser.parse(m.group(), dayfirst=True).date().isoformat()
     except:
         return ""
 
@@ -112,7 +116,7 @@ def parse_table(page, detail_page, section,
         if has_date_col:
             try:
                 date_val = dtparser.parse(
-                    cols[2].get_text(strip=True)
+                    cols[2].get_text(strip=True), dayfirst=True
                 ).date().isoformat()
             except:
                 date_val = ""
@@ -239,12 +243,15 @@ def save_outputs(data):
 
     DATA_DIR.mkdir(exist_ok=True)
 
+    # The same notice can appear on two listing pages in one crawl (one
+    # duplicated id on a 2026-09-24 run); keep the first.
     new_df = pd.DataFrame(data)
+    if not new_df.empty:
+        new_df = new_df.drop_duplicates(subset="id", keep="first")
 
     if new_df.empty:
-        print("No data scraped — JSON not written")
-        new_df.to_json(NEW_JSON, orient="records", indent=2)
-        return
+        print("No data scraped -- blocked, unreachable, or the site layout changed", file=sys.stderr)
+        sys.exit(2)
 
     # -------- FIRST RUN --------
     if not Path(CSV_FILE).exists():

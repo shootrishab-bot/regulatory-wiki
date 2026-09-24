@@ -42,6 +42,7 @@
 
 import { spawn } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { prisma } from "./prisma";
 import { ingestBatch, type NormalizedDocument } from "./ingest";
@@ -107,14 +108,6 @@ export interface RegulatorSync {
 
 export const REGULATORS: RegulatorSync[] = [
   {
-    code: "DOT",
-    watcher: "dot_watcher.py",
-    adapter: "run_dot_adapter.py",
-    normalizedJson: "dot/dot_normalized.json",
-    blockedMarkers: ["BLOCKED (403 Access Denied)", "were BLOCKED", "!!! BLOCKED"],
-    hasBlockedDetection: true,
-  },
-  {
     code: "MTCTE",
     watcher: "mtcte_watcher.py",
     adapter: "run_mtcte_adapter.py",
@@ -163,36 +156,33 @@ export const REGULATORS: RegulatorSync[] = [
     hasBlockedDetection: true,
   },
   // Saral Sanchar (DoT eServices): no adapter step (watch.ts writes
-  // normalizedJson directly, see RegulatorSync.adapter's own comment), and
-  // no real blocked-detection yet -- scrape.ts only distinguishes "HTTP
-  // request failed" from "succeeded", not a WAF/block signature the way
-  // labour_scrape.py's is_blocked() does, so a run that comes back with zero
-  // rows cannot yet be told apart from a real block. Honest about that gap
-  // (hasBlockedDetection: false) rather than claiming detection that isn't
-  // there, same treatment MTCTE got before its own gap was fixed.
+  // normalizedJson directly, see RegulatorSync.adapter's own comment).
+  // scrape.ts prints "[BLOCKED]" for any page refused with 401/403/429 after
+  // its retries (added 2026-09-24, after scheduled runs saw circulars pages
+  // 19-21 refused with 403 and the whole run exit 1), keeps the pages that
+  // did load, and exits non-zero only when every feed came back empty.
   {
     code: "SARALSANCHAR",
     runtime: "node",
     watcher: "saral-sanchar/watch.ts",
     normalizedJson: "data/saral_sanchar_normalized.json",
-    blockedMarkers: [],
-    hasBlockedDetection: false,
+    blockedMarkers: ["[BLOCKED]"],
+    hasBlockedDetection: true,
   },
   // DST: fans out to 4 real source clusters (dst-core, dst-calls, nsdi,
   // aistic) inside scrapers/dst/watch.ts itself -- one combined entrypoint,
   // same reasoning as Saral Sanchar's watch.ts (no per-cluster intermediate
-  // format worth a separate RegulatorSync entry each). No real
-  // blocked-detection here either -- none of the 4 real sites showed any
-  // WAF/block signal during real scraping (2026-08-17), so, same honesty as
-  // Saral Sanchar, this is flagged as a real gap rather than a false
-  // "detected, none found".
+  // format worth a separate RegulatorSync entry each). Each source's fetch
+  // throws "HTTP <status> fetching <url>" and its caller logs it and carries
+  // on, so the refusal statuses are matched from that text, the same way
+  // MERC's are. A run where every cluster fails exits non-zero ([EMPTY]).
   {
     code: "DST",
     runtime: "node",
     watcher: "dst/watch.ts",
     normalizedJson: "data/dst_normalized.json",
-    blockedMarkers: [],
-    hasBlockedDetection: false,
+    blockedMarkers: ["HTTP 401 fetching", "HTTP 403 fetching", "HTTP 429 fetching"],
+    hasBlockedDetection: true,
   },
   // DOS-ISRO: fans out to 3 real sources (ISRO, NSIL, IN-SPACe) inside
   // dos_isro_watcher.py itself, same one-entrypoint-per-regulator shape as
@@ -319,6 +309,26 @@ export const REGULATORS: RegulatorSync[] = [
       "exceed the workflow's 120-minute budget while spending real DeepSeek " +
       "credit. Run it deliberately: npx tsx scripts/sync-all.ts --only MERC",
   },
+  {
+    code: "DOT",
+    watcher: "dot_watcher.py",
+    adapter: "run_dot_adapter.py",
+    normalizedJson: "dot/dot_normalized.json",
+    blockedMarkers: ["BLOCKED (403 Access Denied)", "were BLOCKED", "!!! BLOCKED"],
+    hasBlockedDetection: true,
+    // LAST in this array on purpose: two clean-state crawls on 2026-09-24
+    // found 593 and 877 documents (dot.gov.in 403s a different subset of
+    // pages each run) against 592 stored, so the next successful DOT run is a
+    // backfill of several hundred classifications. Running it last means a
+    // long DOT day can only ever cost DOT, never the regulators behind it.
+    //
+    // Measured 2026-09-24 from a clean state: 66 minutes for a full
+    // backlog crawl and 76 in daily mode, because the time goes on
+    // listing-page loads and dot.gov.in's intermittent 403s (each retried
+    // after a 1- then 3-minute pause, 3-9 of them per run) rather than on
+    // parsing known cards. The shared 45 minutes cut every run off.
+    scrapeTimeoutMs: 90 * 60 * 1000,
+  },
 ];
 
 export type SyncStatusValue = "OK" | "BLOCKED" | "ERROR" | "SKIPPED";
@@ -377,7 +387,8 @@ function killTree(pid: number | undefined) {
 function runScript(
   runtime: "python" | "node",
   script: string,
-  timeoutMs: number
+  timeoutMs: number,
+  extraEnv: Record<string, string> = {}
 ): Promise<PyResult> {
   return new Promise((resolve) => {
     const [cmd, args] =
@@ -394,7 +405,7 @@ function runScript(
       // Python defaults to the console codepage on Windows and dies on real
       // scraped titles containing curly quotes; force UTF-8 for both streams.
       // Harmless no-op for the node runtime.
-      env: { ...process.env, PYTHONIOENCODING: "utf-8", PYTHONUTF8: "1" },
+      env: { ...process.env, PYTHONIOENCODING: "utf-8", PYTHONUTF8: "1", ...extraEnv },
     });
     let stdout = "";
     let stderr = "";
@@ -433,6 +444,16 @@ function runScript(
   });
 }
 
+/** How many trailing lines of a script's output to copy into the sync log. */
+const LOG_TAIL_LINES = 15;
+
+function logTail(log: (msg: string) => void, code: string, script: string, output: string) {
+  const lines = output.split(/\r?\n/).map((l) => l.trimEnd()).filter(Boolean);
+  if (lines.length === 0) return;
+  log(`[${code}] --- last ${Math.min(lines.length, LOG_TAIL_LINES)} lines of ${script} ---`);
+  for (const line of lines.slice(-LOG_TAIL_LINES)) log(`[${code}]   ${line.slice(0, 300)}`);
+}
+
 // DoT is genuinely slow rather than stuck: it expands every topic/detail page
 // through Playwright, and single topic pages really do contain 115+ real
 // sub-documents. A 30-minute cap cut it off mid-run during testing, so the
@@ -464,10 +485,44 @@ export async function syncRegulator(
 
   const runtime = reg.runtime ?? "python";
 
+  // -- 0. what Postgres already holds ---------------------------------------
+  // Read BEFORE scraping and handed to the watcher as a file named in
+  // SYNC_KNOWN_SOURCE_IDS_FILE. Watchers that pay per document (CCI and FIU
+  // download, OCR and classify every item) use it to skip what the wiki
+  // already has: every CI run starts with empty local scraper state, so
+  // without this they reprocessed their whole corpus every day. The same set
+  // is the dedup snapshot in step 3 -- the sync is the only writer, so it
+  // cannot go stale in between.
+  const regulator = await withDbRetry(
+    () => prisma.regulator.findUnique({ where: { code: reg.code } }),
+    "sync fetch regulator",
+    BATCH_RETRY_DELAYS_MS
+  );
+  if (!regulator) {
+    return done({ status: "ERROR", errors: 1, detail: `Regulator ${reg.code} not seeded.` });
+  }
+  const existing = await withDbRetry(
+    () =>
+      prisma.sourceDocument.findMany({
+        where: { regulatorId: regulator.id },
+        select: { sourceId: true },
+      }),
+    "sync dedup snapshot",
+    BATCH_RETRY_DELAYS_MS
+  );
+  const seen = new Set(existing.map((e) => e.sourceId));
+  const knownIdsFile = path.join(os.tmpdir(), `sync-known-${reg.code}-${process.pid}.json`);
+  fs.writeFileSync(knownIdsFile, JSON.stringify([...seen]), "utf-8");
+
   // -- 1. scrape ----------------------------------------------------------
   log(`[${reg.code}] running ${reg.watcher} ...`);
-  const scrape = await runScript(runtime, reg.watcher, reg.scrapeTimeoutMs ?? SCRAPE_TIMEOUT_MS);
+  const scrape = await runScript(runtime, reg.watcher, reg.scrapeTimeoutMs ?? SCRAPE_TIMEOUT_MS, {
+    SYNC_KNOWN_SOURCE_IDS_FILE: knownIdsFile,
+  }).finally(() => fs.rmSync(knownIdsFile, { force: true }));
   const combined = scrape.stdout + "\n" + scrape.stderr;
+  // The watcher's own output was otherwise thrown away, leaving every CI
+  // failure diagnosable only from a 300-character excerpt.
+  logTail(log, reg.code, reg.watcher, combined);
 
   // A blocked marker does NOT by itself mean the regulator must be skipped.
   // dot_watcher.py is explicitly built to tolerate a partial block: it records
@@ -511,6 +566,7 @@ export async function syncRegulator(
   if (reg.adapter) {
     log(`[${reg.code}] running ${reg.adapter} ...`);
     const adapt = await runScript(runtime, reg.adapter, ADAPTER_TIMEOUT_MS);
+    logTail(log, reg.code, reg.adapter, adapt.stdout + "\n" + adapt.stderr);
     if (adapt.code !== 0) {
       const tail = (adapt.stderr || adapt.stdout).trim().split("\n").slice(-3).join(" | ");
       log(`[${reg.code}] ERROR -- adapter exited ${adapt.code}: ${tail.slice(0, 160)}`);
@@ -546,25 +602,7 @@ export async function syncRegulator(
   // ingestBatch would dedup anyway, but checking first means we can report a
   // real "new documents" count and avoid paying for classification on rows we
   // already have. The membership test uses the same (regulatorId, sourceId)
-  // key the pipeline dedups on.
-  const regulator = await withDbRetry(
-    () => prisma.regulator.findUnique({ where: { code: reg.code } }),
-    "sync fetch regulator",
-    BATCH_RETRY_DELAYS_MS
-  );
-  if (!regulator) {
-    return done({ status: "ERROR", errors: 1, detail: `Regulator ${reg.code} not seeded.` });
-  }
-  const existing = await withDbRetry(
-    () =>
-      prisma.sourceDocument.findMany({
-        where: { regulatorId: regulator.id },
-        select: { sourceId: true },
-      }),
-    "sync dedup snapshot",
-    BATCH_RETRY_DELAYS_MS
-  );
-  const seen = new Set(existing.map((e) => e.sourceId));
+  // key the pipeline dedups on; `seen` was read in step 0.
   const fresh = docs.filter((d) => !seen.has(d.source_id));
 
   log(`[${reg.code}] ${fresh.length} genuinely new (of ${docs.length}; ${seen.size} already stored)`);

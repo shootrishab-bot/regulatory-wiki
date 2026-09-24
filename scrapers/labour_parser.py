@@ -540,167 +540,109 @@ def parse_esic(html: str, base_url: str):
     return validate_parser_result(documents, "esic", html)
 
 
+def _clc_document(title: str, source_url: str, published_date, **extra) -> dict:
+    return {
+        "title": title,
+        "published_date": published_date,
+        "source_url": source_url,
+        "file_size": "",
+        "regulator": "CLC",
+        "regulator_full": "Chief Labour Commissioner (Central)",
+        "domain": "employment_law",
+        "document_type": infer_document_type(title),
+        "labour_codes": infer_labour_code(title),
+        "state": "central",
+        "scraped_at": datetime.utcnow().isoformat(),
+        **extra,
+    }
+
+
 def parse_clc(html: str, base_url: str, source_key: str = "clc"):
     """
-    Parse a Chief Labour Commissioner (Central) Views-table page:
-    Circulars/Orders (source_key="clc") or Minimum Wages
-    (source_key="clc_min_wages") -- both real, confirmed 2026-08-06 to
-    share the same Drupal Views-field table shape, just with a different
-    column ORDER and a different real "download" field class, which is
-    why one parser now serves both rather than duplicating it.
+    Parse a CLC downloads table: Circulars/Orders (?page_id=151) or Minimum
+    Wages (?page_id=144) on the WordPress site clc.gov.in moved to in
+    September 2026.
 
-    VALIDATED: Yes -- confirmed against real live HTML 2026-08-06.
+    VALIDATED against live HTML 2026-09-24. Both pages render one
+    <table class="clc-downloads-table"> with a header row S.No / Title /
+    Download / Date, the Download cell holding an <a> to a
+    /wp-content/uploads/ PDF and the Date cell a DD/MM/YYYY string.
 
-    /clc/circulars: real semantic "views-field-*" classes stamped on each
-    <th> AND each real <td>: S.No (views-field-counter) / Title
-    (views-field-title) / Download (views-field-field-file-circular) /
-    Date (views-field-created).
-
-    /clc/min-wages: same four real fields, same class names for title/
-    date/S.No, but column ORDER is Title, Date, Download (not Title,
-    Download, Date), and the real download field class is
-    views-field-field-file-upload-wages, not views-field-field-file-
-    circular. Column extraction below reads by semantic class name, not
-    position, and matches the download column by any "field-file*"
-    prefix, so both real variants resolve without a second function.
-
-    REAL BUG FOUND AND FIXED (circulars, 2026-08-06): the old code assumed
-    cells[0] held the title and a link -- on this real page cells[0] is
-    only the serial number and never has a link. Because this parser's
-    only guard was `if not title: continue` (not requiring a real link
-    too, unlike parse_epfo's stricter check), it did NOT skip these rows
-    -- it silently emitted title="1", "2", "3"... for every real row, with
-    source_url falling back to the listing page's own base_url every
-    time. This was NOT caught by validate_parser_result's old
-    field-presence check, since both fields were technically non-empty,
-    just wrong -- see that function's real duplicate-source_url check,
-    added specifically because of this bug.
-
-    Real pagination confirmed via ?page=N (query-param style, distinct
-    from ESIC's colon style), 2 real pages each for circulars (10+8) and
-    min-wages (10+8) -- see labour_scrape.py's fetch_all_pages() for the
-    real crawler that now walks both to their real last page.
+    Columns are found by HEADER TEXT, not position. The old Drupal parser
+    this replaces had to learn that the hard way (a positional index once
+    emitted every row's serial number as its title -- see
+    validate_parser_result's duplicate-source_url check), and the old
+    site's two sections disagreed on column order, so a new section
+    reordering columns should not silently corrupt rows either.
     """
     soup = BeautifulSoup(html, "html.parser")
     documents = []
 
-    def field_key(td) -> str:
-        classes = td.get("class") or []
-        for c in classes:
-            if c.startswith("views-field-") and c != "views-field":
-                return c[len("views-field-"):]
-        return ""
+    tables = soup.select("table.clc-downloads-table") or soup.find_all("table")
+    for table in tables:
+        header_row = table.find("tr")
+        if header_row is None:
+            continue
+        headers = [c.get_text(" ", strip=True).lower() for c in header_row.find_all(["th", "td"])]
 
-    for table in soup.find_all("table"):
+        def col(*names):
+            for i, h in enumerate(headers):
+                if any(n in h for n in names):
+                    return i
+            return None
+
+        title_i = col("title", "subject", "description")
+        link_i = col("download", "file", "view")
+        date_i = col("date")
+        if title_i is None or link_i is None:
+            continue  # not a downloads table; do not guess at columns
+
         for row in table.find_all("tr")[1:]:
             cells = row.find_all("td")
-            if not cells:
+            if len(cells) <= max(title_i, link_i):
                 continue
-
-            fields = {field_key(td): td for td in cells}
-            title_td = fields.get("title")
-            link_td = next(
-                (td for key, td in fields.items() if key.startswith("field-file")),
-                None,
-            )
-            date_td = fields.get("created")
-
-            if title_td is None or link_td is None:
-                continue  # real column layout not recognised; do not guess
-
-            title = title_td.get_text(" ", strip=True)
-            link_tag = link_td.find("a", href=True)
+            title = cells[title_i].get_text(" ", strip=True)
+            link_tag = cells[link_i].find("a", href=True)
             if not title or not link_tag:
                 continue
-
-            doc_url = urljoin(base_url, link_tag["href"])
-            date_text = date_td.get_text(strip=True) if date_td is not None else ""
-
-            documents.append({
-                "title": title,
-                "published_date": parse_date(date_text),
-                "source_url": doc_url,
-                "file_size": "",
-                "regulator": "CLC",
-                "regulator_full": "Chief Labour Commissioner (Central)",
-                "domain": "employment_law",
-                "document_type": infer_document_type(title),
-                "labour_codes": infer_labour_code(title),
-                "state": "central",
-                "scraped_at": datetime.utcnow().isoformat(),
-            })
+            date_text = (
+                cells[date_i].get_text(strip=True)
+                if date_i is not None and date_i < len(cells)
+                else ""
+            )
+            documents.append(
+                _clc_document(title, urljoin(base_url, link_tag["href"]), parse_date(date_text))
+            )
 
     return validate_parser_result(documents, source_key, html)
 
 
 def parse_clc_acts_rules(html: str, base_url: str):
     """
-    Parse CLC "Acts and Rules" page (/clc/acts-rules/acts-and-rules-0).
+    Parse CLC "Codes, Acts and Rules" (?page_id=67) on the September 2026
+    WordPress site.
 
-    VALIDATED: Yes -- confirmed against real live HTML 2026-08-06.
+    VALIDATED against live HTML 2026-09-24. The page is a single-column
+    <table class="clc-page-links-table"> with no header row; each row is
+    one <a> to a per-Act DETAIL page (?page_id=N), and that detail page is
+    what carries the Act's PDF. So source_url here is the detail page, and
+    labour_watcher_common.resolve_clc_act_pdfs() follows it to the PDF
+    before anything is written -- the listing alone has no file link.
 
-    REAL STRUCTURE -- genuinely different from parse_clc()'s Views table,
-    which is why this is a separate function rather than a third
-    field-key variant: a single-column <table> with NO header row at all
-    (every real <tr> is a data row, unlike circulars/min-wages which have
-    a header row plus Views field-class scaffolding). Each real row has
-    one <a> naming an Act; a handful of real rows carry a SECOND <a> for
-    a companion "Rules" document, and at least one carries a real,
-    useless empty-text placeholder <a> pointing at a duplicate PDF --
-    filtered out here by requiring non-empty link text.
-
-    Real hrefs are a genuine mix: some are absolute PDF paths
-    (/clc/sites/default/files/...), most are bare relative slugs (e.g.
-    "industrial-disputes-act") that resolve to a real detail page -- but
-    ONLY when joined against this LISTING page's own URL, not the site
-    root. Confirmed live: urljoin(".../clc/acts-rules/acts-and-rules-0",
-    "industrial-disputes-act") -> ".../clc/acts-rules/industrial-disputes-act",
-    a real HTTP 200. labour_scrape.py's SOURCES["clc_acts_rules"]["base_url"]
-    is therefore set to this listing page's own URL, not
-    "https://clc.gov.in".
-
-    No date or S.No column exists on this real page at all -- both are
-    left None/absent by design, not a parsing gap.
-
-    Real, CONFIRMED 2026-08-06: unlike circulars/min-wages, this view's
-    ?page=1 is a genuine site bug -- its pager claims a real "last page"
-    marker but returns byte-for-byte identical content to page 0. Real
-    total is 15 documents on ONE real page; labour_scrape.fetch_all_pages()
-    catches this via its wrap-around guard rather than trusting the
-    pager's own "last" claim. See that function and SOURCES["clc_acts_rules"]
-    for the full real evidence.
+    No date column exists on this page, so published_date stays None by
+    design rather than being guessed.
     """
     soup = BeautifulSoup(html, "html.parser")
     documents = []
 
-    for row in soup.find_all("tr"):
-        cell = row.find("td")
-        if cell is None:
+    table = soup.select_one("table.clc-page-links-table")
+    rows = table.find_all("tr") if table is not None else []
+    for row in rows:
+        link = next((a for a in row.find_all("a", href=True) if a.get_text(strip=True)), None)
+        if link is None:
             continue
-
-        links = [a for a in cell.find_all("a", href=True) if a.get_text(strip=True)]
-        if not links:
-            continue  # real placeholder-only row (empty-text <a>)
-
-        primary = links[0]
-        title = primary.get_text(strip=True)
-        doc_url = urljoin(base_url, primary["href"])
-        additional_urls = [urljoin(base_url, a["href"]) for a in links[1:]]
-
-        documents.append({
-            "title": title,
-            "published_date": None,
-            "source_url": doc_url,
-            "additional_urls": additional_urls,
-            "file_size": "",
-            "regulator": "CLC",
-            "regulator_full": "Chief Labour Commissioner (Central)",
-            "domain": "employment_law",
-            "document_type": infer_document_type(title),
-            "labour_codes": infer_labour_code(title),
-            "state": "central",
-            "scraped_at": datetime.utcnow().isoformat(),
-        })
+        title = " ".join(link.get_text(" ", strip=True).split())
+        documents.append(_clc_document(title, urljoin(base_url, link["href"]), None))
 
     return validate_parser_result(documents, "clc_acts_rules", html)
 

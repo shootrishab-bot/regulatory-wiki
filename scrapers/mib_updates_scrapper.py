@@ -140,6 +140,7 @@ import csv
 import json
 import hashlib
 import re
+import sys
 from datetime import datetime, UTC
 from urllib.parse import urljoin
 
@@ -280,6 +281,19 @@ class BlockedError(Exception):
 # -------------------------------------------------
 # HELPERS
 # -------------------------------------------------
+
+def site_url(base_url, href):
+    """urljoin, then drop Drupal's front-controller prefix.
+
+    mib.gov.in serves the same page as both /index.php/en/flipbook/93 and
+    /en/flipbook/93, and its listings alternate between the two. The link is
+    part of make_id(), so every flip re-ingested the document under a new id:
+    on 2026-09-24, 19 MIB documents were stored twice, once per spelling.
+    Hashing only the plain form keeps the id stable whichever one the page
+    happens to render.
+    """
+    return urljoin(base_url, href).replace("://mib.gov.in/index.php/", "://mib.gov.in/")
+
 
 def make_id(title, date, category, link):
     raw = f"{title}|{date}|{category}|{link}"
@@ -446,7 +460,7 @@ def parse_table_row(row, category, base_url, page_number):
             href = a["href"].strip()
             href_lower = href.lower()
             if href_lower.endswith(ALLOWED_FILE_EXTENSIONS):
-                file_link = urljoin(base_url, href)
+                file_link = site_url(base_url, href)
                 file_extension = href_lower.split(".")[-1]
                 break
         if file_link is None:
@@ -460,7 +474,7 @@ def parse_table_row(row, category, base_url, page_number):
             # rather than directly in the <td>.
             first_link = download_td.find("a", href=True)
             if first_link:
-                href = urljoin(base_url, first_link["href"].strip())
+                href = site_url(base_url, first_link["href"].strip())
                 if FLIPBOOK_LINK_RE.search(href):
                     flipbook_link = href
                 else:
@@ -479,7 +493,7 @@ def parse_table_row(row, category, base_url, page_number):
     detail_page_link = None
     title_tag = title_td.find("a", href=True)
     if title_tag:
-        detail_page_link = urljoin(base_url, title_tag["href"].strip())
+        detail_page_link = site_url(base_url, title_tag["href"].strip())
 
     entry_id = make_id(
         title,
@@ -586,16 +600,24 @@ def main():
     ensure_master_csv()
     existing_ids = load_existing_ids()
     new_entries = []
+    total_parsed = 0
 
     for category, url in CATEGORIES.items():
         print(f"[INFO] Scraping {category}")
         entries = scrape_category(category, url)
         print(f"[INFO] {category}: {len(entries)} total real rows parsed across all pages")
+        total_parsed += len(entries)
 
         for entry in entries:
             if entry["id"] not in existing_ids:
                 new_entries.append(entry)
                 existing_ids.add(entry["id"])
+
+    # 0 rows from every category is never MIB's real state (~1,000 listed);
+    # fail so the sync records it instead of "OK, nothing new".
+    if total_parsed == 0:
+        print("[EMPTY] 0 rows parsed from every MIB category -- blocked, unreachable, or the layout changed", file=sys.stderr)
+        sys.exit(2)
 
     if new_entries:
         with open(MASTER_CSV, "a", newline="", encoding="utf-8") as f:

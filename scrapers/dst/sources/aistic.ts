@@ -56,6 +56,7 @@
  * build brief, not split into a separate regulator.
  */
 
+import { fetchHtml as fetchWithRetry } from "../fetch";
 import { createHash } from "node:crypto";
 import { REGULATOR_CODE, type DstScrapedDocument } from "../types";
 import { checkScope } from "../scope";
@@ -68,10 +69,8 @@ const HTTP_HEADERS: Record<string, string> = {
   Accept: "text/html,application/xhtml+xml",
 };
 
-async function fetchHtml(url: string): Promise<string> {
-  const res = await fetch(url, { headers: HTTP_HEADERS, signal: AbortSignal.timeout(30_000) });
-  if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${url}`);
-  return res.text();
+function fetchHtml(url: string): Promise<string> {
+  return fetchWithRetry(url, HTTP_HEADERS);
 }
 
 function absoluteUrl(href: string): string | null {

@@ -1,0 +1,48 @@
+{
+  "https://www.cci.gov.in/antitrust/orders": {
+    "fallback_required": true,
+    "notes": "Error during discovery navigation: ElementHandle.fill: Timeout 30000ms exceeded.\nCall log:\n    - fill(\"2021-01-01\")\n  - attempting fill action\n    2 \u00d7 waiting for element to be visible, enabled and editable\n      - element is not visible\n    - retrying fill action\n    - waiting 20ms\n    2 \u00d7 waiting for element to be visible, enabled and editable\n      - element is not visible\n    - retrying fill action\n      - waiting 100ms\n    58 \u00d7 waiting for element to be visible, enabled and editable\n       - element is not visible\n     - retrying fill action\n       - waiting 500ms\n. ",
+    "endpoints_found": []
+  },
+  "https://www.cci.gov.in/combination/legal-framwork/notifications": {
+    "fallback_required": false,
+    "notes": "Error during discovery navigation: ElementHandle.fill: Timeout 30000ms exceeded.\nCall log:\n    - fill(\"2021-01-01\")\n  - attempting fill action\n    2 \u00d7 waiting for element to be visible, enabled and editable\n      - element is not editable\n    - retrying fill action\n    - waiting 20ms\n    2 \u00d7 waiting for element to be visible, enabled and editable\n      - element is not editable\n    - retrying fill action\n      - waiting 100ms\n    58 \u00d7 waiting for element to be visible, enabled and editable\n       - element is not editable\n     - retrying fill action\n       - waiting 500ms\n. ",
+    "endpoints_found": [
+      {
+        "url": "https://www.cci.gov.in/combination/legal-framwork/notifications?draw=1&columns%5B0%5D%5Bdata%5D=DT_RowIndex&columns%5B0%5D%5Bname%5D=DT_RowIndex&columns%5B0%5D%5Bsearchable%5D=true&columns%5B0%5D%5Borderable%5D=true&columns%5B0%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B0%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B1%5D%5Bdata%5D=title&columns%5B1%5D%5Bname%5D=title&columns%5B1%5D%5Bsearchable%5D=true&columns%5B1%5D%5Borderable%5D=true&columns%5B1%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B1%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B2%5D%5Bdata%5D=order_date&columns%5B2%5D%5Bname%5D=order_date&columns%5B2%5D%5Bsearchable%5D=true&columns%5B2%5D%5Borderable%5D=true&columns%5B2%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B2%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B3%5D%5Bdata%5D=files&columns%5B3%5D%5Bname%5D=files&columns%5B3%5D%5Bsearchable%5D=true&columns%5B3%5D%5Borderable%5D=true&columns%5B3%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B3%5D%5Bsearch%5D%5Bregex%5D=false&order%5B0%5D%5Bcolumn%5D=0&order%5B0%5D%5Bdir%5D=desc&start=0&length=10&search%5Bvalue%5D=&search%5Bregex%5D=false&searchString=&fromdate=&todate=&_=1787032954621",
+        "method": "GET",
+        "request_payload": null,
+        "response_shape_sample": {
+          "draw": 1,
+          "recordsTotal": 23,
+          "recordsFiltered": 23,
+          "data": [
+            {
+              "id": 21,
+              "lang": "en",
+              "title": "Notification regarding Coming into effect of relevant provisions of the sections i.e. 6 to 8 (both inclusive), 21 to 24 (both inclusive), 28, 30, 34 &amp; 38 of the Competition (Amendment) Act, 2023 (9 of 2023), S.O. 3846(E)",
+              "order_date": "10/09/2024",
+              "description": "Notification regarding Coming into effect of relevant provisions of the sections i.e. 6 to 8 (both inclusive), 21 to 24 (both inclusive), 28, 30, 34 &amp; 38 of the Competition (Amendment) Act, 2023 (9 of 2023), S.O. 3846(E)",
+              "file_content": "[{&quot;title&quot;:&quot;Notification&quot;,&quot;file_name&quot;:&quot;images\\/combinationlegalframeworknotification\\/en\\/notification1725955342.pdf&quot;,&quot;file_size&quot;:&quot;1,618.16&quot;}]",
+              "DT_RowIndex": 1,
+              "files": "<div class=\"marginBottom floatLeft col-sm-9\"> <a href=\"https://www.cci.gov.in/combination/legal-framwork/notifications/details/21/0\" target=\"_blank\">View Documents</a>",
+              "DT_RowId": "dt_row_21"
+            },
+            {
+              "id": 23,
+              "lang": "en",
+              "title": "Notification regarding The Competition (Criteria for Exemption of Combinations) Rules, 2024, G.S.R. 549(E)",
+              "order_date": "10/09/2024",
+              "description": "Notification regarding The Competition (Criteria for Exemption of Combinations) Rules, 2024, G.S.R. 549(E)",
+              "file_content": "[{&quot;title&quot;:&quot;Notification&quot;,&quot;file_name&quot;:&quot;images\\/combinationlegalframeworknotification\\/en\\/notification1725955757.pdf&quot;,&quot;file_size&quot;:&quot;1,826.44&quot;}]",
+              "DT_RowIndex": 2,
+              "files": "<div class=\"marginBottom floatLeft col-sm-9\"> <a href=\"https://www.cci.gov.in/combination/legal-framwork/notifications/details/23/0\" target=\"_blank\">View Documents</a>",
+              "DT_RowId": "dt_row_23"
+            }
+          ]
+        },
+        "confidence": "high"
+      }
+    ]
+  }
+}

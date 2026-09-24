@@ -57,7 +57,7 @@ def _output_path(name: str) -> Path:
     return out_dir / f"{name}-{stamp}.json"
 
 
-async def run_scrape(config: Config, limit: int = None) -> List[dict]:
+async def run_scrape(config: Config, limit: int = None, exclude_ids: set = None) -> List[dict]:
     db = Database(config.DB_PATH)
     run_id = f"scrape-{datetime.now().strftime('%Y%m%dT%H%M%S')}"
     started = datetime.now()
@@ -65,6 +65,25 @@ async def run_scrape(config: Config, limit: int = None) -> List[dict]:
     fetcher = FIUFetcher(config)
     async with aiohttp.ClientSession() as session:
         items = await scrape_all_sources(fetcher, session, config)
+
+        # Every source returning nothing is never the site's real state: it
+        # means blocked, unreachable, or changed layout. Fail loudly rather
+        # than let the sync record "OK, 0 rows" (it did, 2026-09-23).
+        if not items:
+            raise RuntimeError("0 items scraped from every source -- blocked, unreachable, or the site layout changed")
+
+        # exclude_ids: source_ids the caller already holds (the daily sync
+        # passes every source_id already in Postgres for this regulator --
+        # see ../run_fiu_scrape.py). Those are dropped before any download,
+        # OCR or classification. Without this, a run on a machine with no
+        # local SQLite -- every CI run, since the database is gitignored --
+        # reprocessed the whole corpus and re-paid DeepSeek for every
+        # document, only for lib/sync.ts to discard all of them as already
+        # stored.
+        if exclude_ids:
+            before = len(items)
+            items = [item for item in items if item.source_id not in exclude_ids]
+            logger.info("%d/%d items already known to the caller; skipped before any download", before - len(items), before)
 
     if limit:
         items = items[:limit]

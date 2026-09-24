@@ -562,6 +562,22 @@ def main():
 
         browser.close()
 
+    # The id is a hash of the file link, and MeitY cross-lists the same PDF
+    # under several sections (e.g. the DPDP Rules corrigendum under both Act
+    # and Policies and Gazettes/Notifications). existing_ids is a snapshot
+    # from before this run, so without this every cross-listing was written
+    # as its own row with the same id: 10 duplicated ids / 13 extra rows on
+    # a clean run, 2026-09-24. First occurrence wins, same rule as
+    # dot_watcher.py's seen_this_run.
+    seen_this_run = set()
+    deduped = []
+    for row in all_new_rows:
+        if row["id"] in seen_this_run:
+            continue
+        seen_this_run.add(row["id"])
+        deduped.append(row)
+    all_new_rows = deduped
+
     print("\n====================")
     print("New entries:", len(all_new_rows))
 
