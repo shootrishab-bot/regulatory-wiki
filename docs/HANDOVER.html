@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Regulatory Wiki Handover</title>
+<style>
+:root {
+  --bg: #f7f7f8;
+  --surface: #ffffff;
+  --surface-2: #f0f3f6;
+  --text: #1c2430;
+  --muted: #5b6675;
+  --border: #dde2e8;
+  --navy: #004062;
+  --cyan: #007f9c;
+  --accent-bg: #e6f4f8;
+  --green: #2e7d4f;
+  --green-bg: #e8f4ec;
+  --amber: #a85a0b;
+  --amber-bg: #fdf2e4;
+  --code-bg: #eef1f5;
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a;
+    --surface: #161d25;
+    --surface-2: #1c2530;
+    --text: #e4e9ef;
+    --muted: #9aa6b4;
+    --border: #2a3542;
+    --navy: #8cc8ea;
+    --cyan: #5cc6e0;
+    --accent-bg: #13303b;
+    --green: #6fcf97;
+    --green-bg: #15291e;
+    --amber: #f0b36a;
+    --amber-bg: #2d2214;
+    --code-bg: #1f2833;
+    --shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --surface-2: #1c2530; --text: #e4e9ef; --muted: #9aa6b4;
+  --border: #2a3542; --navy: #8cc8ea; --cyan: #5cc6e0; --accent-bg: #13303b; --green: #6fcf97;
+  --green-bg: #15291e; --amber: #f0b36a; --amber-bg: #2d2214; --code-bg: #1f2833; --shadow: none;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.65 "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+.layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); max-width: 1280px; margin: 0 auto; }
+nav.toc {
+  position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto;
+  padding: 32px 20px 32px 24px; border-right: 1px solid var(--border); font-size: 14px;
+}
+nav.toc .brand { font-weight: 700; color: var(--navy); margin-bottom: 18px; font-size: 15px; }
+nav.toc ol { list-style: none; padding: 0; margin: 0; counter-reset: s; }
+nav.toc li { counter-increment: s; margin: 2px 0; }
+nav.toc a { display: block; color: var(--muted); text-decoration: none; padding: 4px 8px; border-radius: 6px; }
+nav.toc a::before { content: counter(s) ". "; color: var(--cyan); font-variant-numeric: tabular-nums; }
+nav.toc a:hover { background: var(--surface-2); color: var(--text); }
+main { padding: 40px 48px 96px; min-width: 0; }
+header.hero { margin-bottom: 36px; }
+.eyebrow { text-transform: uppercase; letter-spacing: .08em; font-size: 12px; font-weight: 600; color: var(--cyan); }
+h1 { font-size: 34px; line-height: 1.2; margin: 6px 0 12px; color: var(--navy); }
+h2 { font-size: 24px; margin: 56px 0 14px; padding-top: 8px; color: var(--navy); scroll-margin-top: 16px; }
+h3 { font-size: 18px; margin: 28px 0 8px; }
+p { margin: 0 0 14px; }
+.lede { font-size: 18px; color: var(--muted); max-width: 70ch; }
+a { color: var(--cyan); }
+code, pre { font-family: "Cascadia Code", Consolas, "SFMono-Regular", Menlo, monospace; font-size: 0.88em; }
+code { background: var(--code-bg); padding: 1px 6px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--code-bg); padding: 14px 16px; border-radius: 8px; overflow-x: auto; line-height: 1.5; margin: 0 0 16px; }
+pre code { background: none; padding: 0; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 24px 0 8px; }
+.stat { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; box-shadow: var(--shadow); }
+.stat .n { font-size: 28px; font-weight: 700; color: var(--navy); font-variant-numeric: tabular-nums; line-height: 1.2; }
+.stat .l { font-size: 13px; color: var(--muted); }
+.plain {
+  background: var(--accent-bg); border-left: 4px solid var(--cyan); padding: 12px 16px;
+  border-radius: 0 8px 8px 0; margin: 12px 0 18px;
+}
+.plain::before { content: "In plain terms"; display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--cyan); margin-bottom: 2px; }
+.note { background: var(--amber-bg); border-left: 4px solid var(--amber); padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 12px 0 18px; }
+.good { background: var(--green-bg); border-left: 4px solid var(--green); padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 12px 0 18px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; margin: 14px 0; box-shadow: var(--shadow); }
+.card h3 { margin-top: 0; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); margin: 12px 0 20px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { background: var(--surface-2); font-weight: 600; white-space: nowrap; }
+tr:last-child td { border-bottom: none; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tag { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); white-space: nowrap; }
+.tag.ok { background: var(--green-bg); color: var(--green); border-color: transparent; }
+.tag.manual { background: var(--amber-bg); color: var(--amber); border-color: transparent; }
+.flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; margin: 18px 0 22px; }
+.flow .step { flex: 1 1 140px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; position: relative; box-shadow: var(--shadow); }
+.flow .step b { display: block; color: var(--navy); }
+.flow .step span { font-size: 13px; color: var(--muted); }
+.flow .step code { font-size: 12px; }
+.flow .arrow { align-self: center; color: var(--cyan); font-size: 20px; }
+.tree { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; font-family: "Cascadia Code", Consolas, Menlo, monospace; font-size: 13.5px; line-height: 1.7; overflow-x: auto; white-space: pre; }
+.tree .c { color: var(--muted); }
+.tree .d { color: var(--navy); font-weight: 600; }
+ol.steps { padding-left: 22px; }
+ol.steps li { margin-bottom: 10px; }
+footer { margin-top: 64px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--border); padding-top: 16px; }
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  nav.toc { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); padding: 20px 16px; }
+  main { padding: 24px 16px 64px; }
+  h1 { font-size: 27px; }
+  .flow .arrow { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+<nav class="toc" aria-label="Contents">
+  <div class="brand">Regulatory Wiki · Handover</div>
+  <ol>
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#pipeline">How it works</a></li>
+    <li><a href="#concepts">Key concepts</a></li>
+    <li><a href="#regulators">Regulators in the daily sync</a></li>
+    <li><a href="#more-scrapers">Additional scrapers</a></li>
+    <li><a href="#repo">What lives where</a></li>
+    <li><a href="#database">The database</a></li>
+    <li><a href="#classification">Classification &amp; review</a></li>
+    <li><a href="#website">The website</a></li>
+    <li><a href="#automation">Daily automation</a></li>
+    <li><a href="#reliability">Reliability safeguards</a></li>
+    <li><a href="#running">Running it yourself</a></li>
+    <li><a href="#tools">Maintenance tools</a></li>
+    <li><a href="#credentials">Credentials &amp; access</a></li>
+    <li><a href="#next">Recommended next steps</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="hero">
+  <div class="eyebrow">Handover guide · September 2026</div>
+  <h1>Regulatory Wiki</h1>
+  <p class="lede">A regulatory-intelligence system for Indian regulators. It watches regulators' websites every day, collects every new circular, order, notification and report, uses an AI model to tag each one against a regulator-specific taxonomy, and publishes the result as a searchable, structured library.</p>
+
+  <div class="stats">
+    <div class="stat"><div class="n">8,375</div><div class="l">documents collected and classified</div></div>
+    <div class="stat"><div class="n">13</div><div class="l">regulators in the live database</div></div>
+    <div class="stat"><div class="n">12</div><div class="l">regulators synced automatically every day</div></div>
+    <div class="stat"><div class="n">~83%</div><div class="l">classified with high confidence, no human needed</div></div>
+    <div class="stat"><div class="n">10</div><div class="l">further scrapers built and tested, ready to wire in</div></div>
+  </div>
+</header>
+
+<!-- ============================================================ -->
+<h2 id="overview">Overview</h2>
+<div class="plain">
+  Every regulator publishes its rules on its own website, each organised differently. This system visits those websites automatically, picks up anything new, reads it, labels it (what kind of document it is, what subject it covers, whether it is still in force), and files it in one place where lawyers can browse and filter it. Anything the AI isn't sure about is set aside for a person to check before it goes live.
+</div>
+<p>The system has five layers, each in its own part of the codebase:</p>
+<div class="grid2">
+  <div class="card"><h3>1. Scrapers &amp; watchers</h3><p>One per regulator, in <code>scrapers/</code>. They visit the regulator's site and list every document with its title, date and file link.</p></div>
+  <div class="card"><h3>2. Adapters</h3><p>Convert each scraper's regulator-specific output into one shared format, the <em>normalized document</em>.</p></div>
+  <div class="card"><h3>3. Sync &amp; ingest</h3><p><code>lib/sync.ts</code> runs everything daily; <code>lib/ingest.ts</code> drops documents already stored and has DeepSeek classify the new ones.</p></div>
+  <div class="card"><h3>4. Database</h3><p>PostgreSQL via Prisma. It stores the taxonomies, the documents, their classifications, and a log of every sync run.</p></div>
+  <div class="card"><h3>5. Website</h3><p>A Next.js app with a public library (ANS), a human review queue for admins, and the gyaani / Horizon Scan product shell.</p></div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="pipeline">How it works, end to end</h2>
+<div class="flow" role="list">
+  <div class="step" role="listitem"><b>Regulator site</b><span>dot.gov.in, cci.gov.in, …</span></div>
+  <div class="arrow" aria-hidden="true">→</div>
+  <div class="step" role="listitem"><b>Watcher</b><span>scrapes listings<br><code>scrapers/*_watcher.py</code></span></div>
+  <div class="arrow" aria-hidden="true">→</div>
+  <div class="step" role="listitem"><b>Adapter</b><span>normalizes to JSON<br><code>run_*_adapter.py</code></span></div>
+  <div class="arrow" aria-hidden="true">→</div>
+  <div class="step" role="listitem"><b>Sync</b><span>keeps only new docs<br><code>lib/sync.ts</code></span></div>
+  <div class="arrow" aria-hidden="true">→</div>
+  <div class="step" role="listitem"><b>Ingest</b><span>text + DeepSeek tags<br><code>lib/ingest.ts</code></span></div>
+  <div class="arrow" aria-hidden="true">→</div>
+  <div class="step" role="listitem"><b>Postgres</b><span>documents, entries, tags</span></div>
+  <div class="arrow" aria-hidden="true">→</div>
+  <div class="step" role="listitem"><b>Website</b><span>library + review queue</span></div>
+</div>
+
+<h3>Step by step</h3>
+<ol class="steps">
+  <li><strong>Scrape.</strong> The watcher for each regulator loads its listing pages and records every document: title, date, category, and the link to the file. Sites that need a real browser (JavaScript-rendered pages, bot protection) use Playwright with Chromium. Simpler sites use plain HTTP requests (Python <code>requests</code>, or <code>fetch</code> + <code>cheerio</code> for the TypeScript scrapers).</li>
+  <li><strong>Normalize.</strong> The adapter maps that raw output onto the shared <code>NormalizedDocument</code> contract (<code>scrapers/normalized_document.py</code>): <code>regulator_code</code>, <code>source_id</code>, <code>title</code>, <code>source_url</code>, <code>published_date</code>, <code>file_url</code>, <code>category_hint</code>, <code>status_hint</code>, <code>raw_text</code>, <code>needs_download</code>, <code>scraped_at</code>. It writes one JSON file per regulator, e.g. <code>scrapers/data/mib_normalized.json</code>.</li>
+  <li><strong>Deduplicate.</strong> Every document has a stable <code>source_id</code>, a hash the scraper computes from things that don't change (usually the regulator, the document's URL and its title). The sync compares these against what Postgres already holds and keeps only the genuinely new ones.</li>
+  <li><strong>Classify.</strong> For each new document, <code>lib/ingest.ts</code> downloads the file where needed, extracts the text (PDF parsing, with OCR for scanned files in CCI, FIU and DST), and asks DeepSeek (<code>deepseek-chat</code>) to pick tags from that regulator's own taxonomy, which comes from Postgres with each tag's definition.</li>
+  <li><strong>Publish or queue.</strong> Results with confidence of at least <strong>0.75</strong> and no warning signs publish straight away. Everything else is flagged for the admin review queue at <code>/admin/review</code>.</li>
+  <li><strong>Record.</strong> Every sync writes a <code>SyncRun</code> row, plus one <code>SyncRunRegulator</code> row per regulator: status (OK, BLOCKED, ERROR, SKIPPED), rows scraped, new, ingested, flagged, errors and duration.</li>
+</ol>
+
+<!-- ============================================================ -->
+<h2 id="concepts">Key concepts</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Term</th><th>Plain meaning</th><th>Technical detail</th></tr></thead>
+<tbody>
+<tr><td><strong>Watcher</strong></td><td>The program that checks a regulator's website for documents.</td><td>A script under <code>scrapers/</code>, run by <code>lib/sync.ts</code> with <code>cwd=scrapers/</code>. It writes a master CSV (Python watchers) or JSON directly (TypeScript watchers).</td></tr>
+<tr><td><strong>Scraper</strong></td><td>Code that reads a web page and pulls out the information.</td><td>Often the same file as the watcher. Some regulators split it into a scraper library plus a watcher entrypoint (e.g. <code>labour_scrape.py</code> + <code>labour_watcher_*.py</code>, <code>dos_isro_scraper.py</code> + <code>dos_isro_watcher.py</code>).</td></tr>
+<tr><td><strong>Adapter</strong></td><td>A translator that puts every regulator's data into the same shape.</td><td><code>*_adapter.py</code> holds the mapping; <code>run_*_adapter.py</code> reads the master CSV and writes the normalized JSON.</td></tr>
+<tr><td><strong>Normalized document</strong></td><td>One document described in the standard format.</td><td>Dataclass in <code>scrapers/normalized_document.py</code>, mirrored as the TypeScript <code>NormalizedDocument</code> interface in <code>lib/ingest.ts</code>.</td></tr>
+<tr><td><strong>source_id</strong></td><td>A fingerprint that lets the system recognise a document it has already seen.</td><td>Unique per regulator: <code>@@unique([regulatorId, sourceId])</code> on <code>SourceDocument</code>. It must not change between runs, or the document is ingested twice.</td></tr>
+<tr><td><strong>Taxonomy</strong></td><td>The labels a regulator's documents can be given.</td><td><code>TaxonomyTag</code> rows grouped by <code>Facet</code> (Subject, Instrument Type, Status, and others). Seeded per regulator from the Excel workbooks by <code>prisma/seed-*.ts</code>.</td></tr>
+<tr><td><strong>Entry</strong></td><td>A document's published record in the library, with its labels.</td><td><code>UpdateEntry</code>: one per <code>SourceDocument</code>, holding subject, instrument type, status, confidences, the classifier's reasoning, and review flags.</td></tr>
+<tr><td><strong>Blocked</strong></td><td>The regulator's site refused to answer us.</td><td>The watcher prints a marker (e.g. <code>[BLOCKED]</code>, <code>!!! BLOCKED</code>), and the sync records BLOCKED instead of reporting "nothing new".</td></tr>
+</tbody></table></div>
+
+<!-- ============================================================ -->
+<h2 id="regulators">Regulators in the daily sync</h2>
+<p>These twelve are registered in the <code>REGULATORS</code> array in <code>lib/sync.ts</code> and run in that order. CPPP is also in the database; its scraper exists but isn't registered, for the reason given in its row.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Code</th><th>Regulator &amp; source</th><th>Watcher → adapter</th><th>Technique</th><th class="num">Docs stored</th></tr></thead>
+<tbody>
+<tr><td><strong>MTCTE</strong></td><td>TEC Mandatory Testing &amp; Certification<br><code>mtcte.tec.gov.in</code>: archive (circulars, proforma) + homepage</td><td><code>mtcte_watcher.py</code> → <code>run_mtcte_adapter.py</code> (<code>mtcte_adapter.py</code>)</td><td>Playwright</td><td class="num">152</td></tr>
+<tr><td><strong>MIB</strong></td><td>Ministry of Information &amp; Broadcasting<br><code>mib.gov.in</code>: ~20 categories (press releases, advisories, notices, acts, e-books…)</td><td><code>mib_updates_scrapper.py</code> → <code>run_mib_adapter.py</code> (<code>mib_adapter.py</code>)</td><td>requests</td><td class="num">1,093</td></tr>
+<tr><td><strong>EPFO</strong></td><td>Employees' Provident Fund Organisation<br><code>epfo.gov.in</code>: circulars + archives</td><td><code>labour_watcher_epfo.py</code> → <code>run_epfo_adapter.py</code></td><td>Playwright (shared labour stack)</td><td class="num">1,897</td></tr>
+<tr><td><strong>ESIC</strong></td><td>Employees' State Insurance Corporation<br><code>esic.gov.in/circulars</code></td><td><code>labour_watcher_esic.py</code> → <code>run_esic_adapter.py</code></td><td>Playwright (shared labour stack)</td><td class="num">404</td></tr>
+<tr><td><strong>CLC</strong></td><td>Chief Labour Commissioner (Central)<br><code>clc.gov.in</code>: Circulars/Orders, Minimum Wages, Codes/Acts/Rules</td><td><code>labour_watcher_clc.py</code> → <code>run_clc_adapter.py</code></td><td>Playwright + requests</td><td class="num">52</td></tr>
+<tr><td><strong>SARALSANCHAR</strong></td><td>DoT eServices<br><code>eservices.dot.gov.in</code>: circulars, circulars archive, acts &amp; policies</td><td><code>saral-sanchar/watch.ts</code> (+ <code>scrape.ts</code>), no separate adapter</td><td>TypeScript, fetch + cheerio</td><td class="num">659</td></tr>
+<tr><td><strong>DST</strong></td><td>Department of Science &amp; Technology<br><code>dst.gov.in</code> (core + calls for proposals), <code>nsdi.gov.in</code>, <code>aistic.gov.in</code></td><td><code>dst/watch.ts</code> (+ <code>dst/sources/*</code>, <code>dst/extract.ts</code>, <code>dst/fetch.ts</code>)</td><td>TypeScript, with text extraction + OCR</td><td class="num">695</td></tr>
+<tr><td><strong>DOS-ISRO</strong></td><td>Department of Space family<br><code>isro.gov.in</code>, <code>nsilindia.co.in</code>, <code>inspace.gov.in</code></td><td><code>dos_isro_watcher.py</code> (+ <code>dos_isro_scraper.py</code>) → <code>run_dos_isro_adapter.py</code></td><td>requests + IN-SPACe ServiceNow API</td><td class="num">681</td></tr>
+<tr><td><strong>CCI</strong></td><td>Competition Commission of India<br><code>cci.gov.in</code>: homepage, tenders, market studies, antitrust orders, combination notifications</td><td><code>run_cci_scrape.py</code> → <code>cci_scraper/</code> package → <code>run_cci_adapter.py</code></td><td>aiohttp + APIs, SQLite store, OCR</td><td class="num">1,343</td></tr>
+<tr><td><strong>FIU</strong></td><td>Financial Intelligence Unit – India<br><code>fiuindia.gov.in</code>: compliance orders, downloads, publications, tenders, what's new</td><td><code>run_fiu_scrape.py</code> → <code>fiu_scraper/</code> package → <code>run_fiu_adapter.py</code></td><td>aiohttp, SQLite store, OCR</td><td class="num">518</td></tr>
+<tr><td><strong>MERC</strong></td><td>Maharashtra Electricity Regulatory Commission<br><code>merc.gov.in</code>: orders, daily orders, hearings + ~40 listing pages</td><td><code>merc_watcher.py</code> → <code>run_merc_adapter.py</code></td><td>requests (site's own data APIs)</td><td class="num">100 <span class="tag manual">backfill pending</span></td></tr>
+<tr><td><strong>DOT</strong></td><td>Department of Telecommunications<br><code>dot.gov.in</code>: 7 sections (orders &amp; notices, reports, acts &amp; policies, publications, press releases, guidelines, gazette notifications)</td><td><code>dot_watcher.py</code> → <code>run_dot_adapter.py</code> (<code>dot_adapter.py</code>)</td><td>Playwright (headed browser)</td><td class="num">592</td></tr>
+<tr><td>CPPP</td><td>Central Public Procurement Portal<br><code>eprocure.gov.in/cppp</code></td><td><code>cppp_watcher.py</code> → <code>run_cppp_adapter.py</code></td><td>requests</td><td class="num">189 <span class="tag">not in daily sync</span></td></tr>
+</tbody></table></div>
+
+<h3>Notes per regulator</h3>
+<div class="grid2">
+  <div class="card"><h3>DoT</h3><p>dot.gov.in is the most demanding site. It is JavaScript-rendered, many listing rows are "topic pages" hiding dozens of sub-documents (one holds 115+), and it rate-limits in bursts. The watcher expands every topic page, retries blocked pages after 1- and 3-minute pauses, and records any section it couldn't reach. A full crawl takes 60–75 minutes, so DoT has its own 90-minute limit and runs last. Under the sync it runs in <em>daily mode</em>, stopping on each topic page at the first document the wiki already has.</p></div>
+  <div class="card"><h3>EPFO, ESIC, CLC (labour)</h3><p>These share one stack. <code>labour_scrape.py</code> fetches pages with generic WAF/block detection (<code>is_blocked()</code>), <code>labour_parser.py</code> has one parser per source, and <code>labour_watcher_common.py</code> drives them and writes the CSV. <code>labour_adapter.py</code> serves all three.</p></div>
+  <div class="card"><h3>CCI and FIU</h3><p>Standalone Python packages with their own config, SQLite database, downloader, text extractor with OCR fallback (Poppler + Tesseract) for scanned pre-2015 orders, and their own classifier. The <code>run_*_scrape.py</code> bridges run each package's <code>scrape</code> command; the adapters export the SQLite rows to the shared JSON format. Documents already in the wiki are skipped before anything is downloaded.</p></div>
+  <div class="card"><h3>MERC</h3><p>MERC exposes its orders, daily orders and hearings through the site's own AJAX data feeds, about 20,800 documents in three requests. The database holds a 100-document taxonomy sample. The full backfill is deliberately a one-off manual run (<code>skipScheduled</code> in <code>lib/sync.ts</code>), so a routine nightly job never turns into a 20,000-document classification bill.</p></div>
+  <div class="card"><h3>Saral Sanchar and DST</h3><p>Written in TypeScript because these sites need no browser automation. Each <code>watch.ts</code> writes normalized JSON directly, so there is no adapter step. DST fans out across four source clusters and extracts document text itself, with OCR as the fallback.</p></div>
+  <div class="card"><h3>DOS-ISRO</h3><p>Three sources in one watcher: ISRO (press releases, tenders, reports, policy), NSIL (tenders, reports) and IN-SPACe (authorizations, data disseminators, events, opportunities, publications, the national geospatial policy), the last via its ServiceNow page API. Some IN-SPACe records are table rows with no file of their own; the website explains this in the document preview.</p></div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="more-scrapers">Additional scrapers (built, tested, not yet in the daily sync)</h2>
+<p>These cover further regulators. Each was run from a clean state on 24 September 2026, and a random sample of its documents was checked to confirm the links really download.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Regulator</th><th>Files</th><th class="num">Documents found</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td>APTEL (Appellate Tribunal for Electricity)</td><td><code>aptel_watcher.py</code>, <code>aptel_adapter.py</code></td><td class="num">133</td><td><span class="tag ok">working</span> Needs the full <code>requirements.txt</code> (semantic ranking)</td></tr>
+<tr><td>CERC (Central Electricity Regulatory Commission)</td><td><code>cerc_scraper.py</code>, <code>cerc_adapter.py</code></td><td class="num">38</td><td><span class="tag ok">working</span></td></tr>
+<tr><td>CPPP institutional documents</td><td><code>cppp_watcher.py</code>, <code>run_cppp_adapter.py</code></td><td class="num">739</td><td><span class="tag ok">working</span> Tender ↔ corrigendum linking still to design</td></tr>
+<tr><td>IP India</td><td><code>ipindia.py</code>, <code>ipindia_adapter.py</code></td><td class="num">59</td><td><span class="tag ok">working</span> Rebuilt for the relaunched site</td></tr>
+<tr><td>IRDAI</td><td><code>irdai_watcher.py</code>, <code>irdai_adapter.py</code></td><td class="num">36</td><td><span class="tag ok">working</span> Latest 10 per section, by design</td></tr>
+<tr><td>MeitY</td><td><code>meity_watcher.py</code>, <code>meity_parser.py</code></td><td class="num">667</td><td><span class="tag ok">working</span></td></tr>
+<tr><td>PFRDA</td><td><code>pfrda_scraper.py</code>, <code>pfrda_adapter.py</code></td><td class="num">296</td><td><span class="tag ok">working</span></td></tr>
+<tr><td>RBI FAQs</td><td><code>rbi_faq_scraper.py</code>, <code>rbi_faq_adapter.py</code></td><td class="num">81</td><td><span class="tag ok">working</span></td></tr>
+<tr><td>SEBI (acts, rules, regulations, circulars, orders)</td><td><code>sebi_multi_section_scraper.py</code>, <code>sebi_adapter.py</code></td><td class="num">54</td><td><span class="tag ok">working</span> Every document mapped to its own PDF</td></tr>
+<tr><td>CCI public notices &amp; press releases</td><td><code>cci_watcher.py</code>, <code>cci_adapter.py</code></td><td class="num">103</td><td><span class="tag ok">working</span> Complements the main <code>cci_scraper</code> feeds</td></tr>
+</tbody></table></div>
+<p><strong>Adding one to the daily sync</strong> takes three steps:</p>
+<ol class="steps">
+  <li>Seed the regulator's taxonomy: add a <code>prisma/seed-&lt;code&gt;.ts</code>, following the existing ones.</li>
+  <li>Add a <code>run_&lt;code&gt;_adapter.py</code> that writes <code>scrapers/data/&lt;code&gt;_normalized.json</code>.</li>
+  <li>Add an entry to <code>REGULATORS</code> in <code>lib/sync.ts</code>, with its block markers.</li>
+</ol>
+
+<!-- ============================================================ -->
+<h2 id="repo">What lives where in the repository</h2>
+<p>Everything is on the <code>master</code> branch of the private GitHub repository <code>regulatory-wiki</code>. Scraped output, local databases and downloaded PDFs are regenerated by running the scrapers and are deliberately not in Git (see <code>.gitignore</code>).</p>
+<div class="tree"><span class="d">regulatory-wiki/</span>
+├── <span class="d">app/</span>                      <span class="c">Next.js routes (App Router)</span>
+│   ├── page.tsx, layout.tsx   <span class="c">home + root layout (gyaani shell)</span>
+│   ├── <span class="d">library/</span>              <span class="c">"Regulatory library" (ANS) landing</span>
+│   ├── <span class="d">documents/</span>            <span class="c">document list + /documents/[id] detail with preview</span>
+│   ├── <span class="d">regulators/ domains/ subjects/ instruments/</span>  <span class="c">browse by taxonomy</span>
+│   ├── <span class="d">horizon/</span>              <span class="c">Horizon Scan: alerts, newsletters, matter scanning, history, drafts</span>
+│   ├── <span class="d">admin/</span>                <span class="c">login + /admin/review queue for flagged entries</span>
+│   ├── <span class="d">api/</span>                  <span class="c">NextAuth route; /api/documents/[id]/file PDF proxy</span>
+│   └── approvals/ credentials/ meetings/ …  <span class="c">gyaani modules (placeholders)</span>
+├── <span class="d">components/</span>               <span class="c">UI: entry lists, filters, document preview, review form</span>
+│   ├── <span class="d">ans/</span>                  <span class="c">gyaani / Horizon Scan shell and widgets</span>
+│   └── <span class="d">ui/</span>                   <span class="c">shadcn-style primitives</span>
+├── <span class="d">lib/</span>
+│   ├── sync.ts                <span class="c">daily sync orchestrator + REGULATORS registry</span>
+│   ├── ingest.ts              <span class="c">text extraction + DeepSeek classification + DB writes</span>
+│   ├── queries.ts             <span class="c">read queries used by the website</span>
+│   ├── auth.ts, require-admin.ts  <span class="c">NextAuth credentials login, admin guard</span>
+│   ├── file-kind.ts, document-date.ts, date-resolution.ts  <span class="c">display helpers</span>
+│   ├── db-retry.ts, prisma.ts <span class="c">Postgres client + retry for idle serverless DBs</span>
+│   └── <span class="d">ans/demo-data.ts</span>      <span class="c">invented fixtures for the Horizon Scan demo</span>
+├── <span class="d">prisma/</span>
+│   ├── schema.prisma          <span class="c">data model</span>
+│   ├── <span class="d">migrations/</span>           <span class="c">schema history (apply with migrate deploy)</span>
+│   └── seed-*.ts              <span class="c">one taxonomy seed per regulator (idempotent)</span>
+├── <span class="d">scrapers/</span>                 <span class="c">every watcher, scraper and adapter (see sections 4-5)</span>
+│   ├── normalized_document.py <span class="c">the shared output contract</span>
+│   ├── verify_normalized.py   <span class="c">spot-check tool: fields, dates, duplicate ids, live links</span>
+│   ├── requirements-sync.txt  <span class="c">slim Python deps for the daily sync</span>
+│   ├── requirements.txt       <span class="c">full Python deps (incl. APTEL/CERC extras)</span>
+│   ├── <span class="d">cci_scraper/ fiu_scraper/</span>  <span class="c">standalone packages (own README, taxonomy findings)</span>
+│   ├── <span class="d">saral-sanchar/ dst/</span>   <span class="c">TypeScript scrapers</span>
+│   ├── test_*.py              <span class="c">parser and blocked-detection tests</span>
+│   └── *-taxonomy-findings.md <span class="c">research notes behind each taxonomy</span>
+├── <span class="d">scripts/</span>                  <span class="c">operational CLIs (see Maintenance tools)</span>
+├── <span class="d">.github/workflows/</span>
+│   └── daily-sync.yml         <span class="c">scheduled daily sync (03:00 UTC)</span>
+├── *_Taxonomy_v*.xlsx          <span class="c">taxonomy workbooks (FIU, MERC, CPPP) + facet comparison</span>
+├── taxonomy-canonical-concepts.md/.xlsx  <span class="c">cross-regulator concept map</span>
+├── .env.example               <span class="c">template of required settings (no real values)</span>
+├── README.md                  <span class="c">setup and run instructions</span>
+└── AGENTS.md / CLAUDE.md      <span class="c">note: Next.js 16 conventions differ from older docs</span></div>
+
+<!-- ============================================================ -->
+<h2 id="database">The database</h2>
+<div class="plain">One PostgreSQL database holds everything the website shows: the list of regulators, each regulator's labels, every collected document, the labels chosen for it, and the history of every daily run.</div>
+<div class="table-wrap"><table>
+<thead><tr><th>Model</th><th>What it holds</th></tr></thead>
+<tbody>
+<tr><td><code>Domain</code>, <code>Regulator</code></td><td>Practice domains and the regulators under them (13 regulators today).</td></tr>
+<tr><td><code>TaxonomyTag</code></td><td>Each regulator's tags, by <code>Facet</code>: Subject, Instrument Type, Status and others, with definitions and hierarchy. A Status tag can apply only to certain Subjects (<code>statusAppliesToSubjectIds</code>).</td></tr>
+<tr><td><code>CanonicalConcept</code></td><td>Cross-regulator concepts that map equivalent tags together.</td></tr>
+<tr><td><code>TaxonomyProposal</code></td><td>Proposed changes to a taxonomy.</td></tr>
+<tr><td><code>SourceDocument</code></td><td>One collected document: title, source and file URLs, publication date, <code>sourceId</code> (unique per regulator), first-ingested time.</td></tr>
+<tr><td><code>UpdateEntry</code></td><td>The classified record: subject, instrument type, status, confidence scores, the classifier's reasoning, <code>needsReview</code> and review reasons, taxonomy version.</td></tr>
+<tr><td><code>EntryApplicability</code>, <code>EntryLicenseAuthorisationType</code>, <code>EntryRelationship</code></td><td>Extra facets, and links between entries (amends, supersedes, …).</td></tr>
+<tr><td><code>User</code></td><td>Admin accounts (hashed passwords). There is no public signup.</td></tr>
+<tr><td><code>SyncRun</code>, <code>SyncRunRegulator</code></td><td>The durable log of every sync, per regulator.</td></tr>
+</tbody></table></div>
+<p>Schema changes go through Prisma migrations in <code>prisma/migrations/</code>: <code>npx prisma migrate dev</code> while developing, <code>npx prisma migrate deploy</code> on a server. The generated client is written to <code>app/generated/prisma</code>, which isn't in Git (run <code>npx prisma generate</code>).</p>
+
+<!-- ============================================================ -->
+<h2 id="classification">Classification &amp; human review</h2>
+<div class="plain">The AI reads each new document alongside the regulator's list of possible labels and their definitions, then picks the best fit and says how sure it is. Confident answers go straight into the library; uncertain ones wait for a person.</div>
+<ul>
+  <li><strong>Model:</strong> DeepSeek <code>deepseek-chat</code>, called through the OpenAI SDK pointed at DeepSeek's compatible endpoint (<code>lib/ingest.ts</code>).</li>
+  <li><strong>Prompt:</strong> built per regulator from Postgres: every Subject, Instrument Type and Status tag, <em>with its definition</em>, plus the scraper's category hint and whether the text is present, missing, or failed to extract.</li>
+  <li><strong>Rules:</strong> one Subject tag, with fallback to its parent; entity-versus-activity tie-breaks; Amended, Superseded and litigation statuses only when the document itself says so; In Force by default.</li>
+  <li><strong>Auto-accept threshold:</strong> 0.75. Below that, or when a check trips (low confidence, unreadable date, failed text extraction), the entry is flagged. About 83% of the 8,375 documents were accepted automatically.</li>
+  <li><strong>Review:</strong> admins sign in at <code>/admin/login</code> and work through <code>/admin/review</code>, confirming or correcting tags per document.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="website">The website</h2>
+<div class="grid2">
+  <div class="card"><h3>Regulatory library (ANS)</h3><p>The live corpus. Browse by regulator, domain, subject or instrument type; filter the document list; open a document to see its tags, the classifier's reasoning and an inline preview. PDFs go through our own proxy (<code>/api/documents/[id]/file</code>) because several regulators block embedding. Dates later than today get an "unverified date" badge rather than being silently corrected.</p></div>
+  <div class="card"><h3>gyaani shell &amp; Horizon Scan</h3><p>The firm-platform shell (sidebar, header, module navigation) built to the firm's mockups. Horizon Scan's tabs (alerts, newsletters, matter scanning, history) run on invented demo fixtures in <code>lib/ans/demo-data.ts</code>, so the demo works on a laptop without a database. The Regulatory library tab is the real data. Brand names are one constant (<code>BRAND</code> in <code>components/ans/app-shell.tsx</code>); colours are <code>--ans-*</code> tokens in <code>app/globals.css</code>.</p></div>
+  <div class="card"><h3>Admin</h3><p>Credentials login via NextAuth (<code>lib/auth.ts</code>), guarded by <code>lib/require-admin.ts</code> and <code>proxy.ts</code>. Next.js 16 renamed the middleware file convention to <code>proxy</code>.</p></div>
+  <div class="card"><h3>Other gyaani modules</h3><p>Approvals, Credentials, Meetings &amp; Travel, Pitch Generator, Practice and Partner Profiles, Help and User Guide are placeholder pages inside the shell, ready for their own modules.</p></div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="automation">Daily automation</h2>
+<p><code>.github/workflows/daily-sync.yml</code> runs every day at 03:00 UTC (about 08:30 IST), and can also be started by hand from the Actions tab (<em>Run workflow</em>). It:</p>
+<ol class="steps">
+  <li>installs Node and Python dependencies (the slim <code>requirements-sync.txt</code>, plus the CCI and FIU package requirements);</li>
+  <li>installs Playwright Chromium, Poppler and Tesseract;</li>
+  <li>generates the Prisma client;</li>
+  <li>runs <code>xvfb-run -a npx tsx scripts/sync-all.ts --trigger schedule</code> (xvfb provides a virtual display for DoT's headed browser);</li>
+  <li>prints recent sync history with <code>scripts/show-sync-runs.ts</code>.</li>
+</ol>
+<p>A regulator that is blocked or fails is recorded and the run moves on to the next one. The job only fails if <em>every</em> regulator errors. MERC is skipped on scheduled runs until its one-off backfill is done.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Setting</th><th>Where</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><code>DATABASE_URL</code></td><td>Repository secret</td><td>Postgres connection for the sync.</td></tr>
+<tr><td><code>DEEPSEEK_API_KEY</code></td><td>Repository secret</td><td>Classification of new documents.</td></tr>
+<tr><td><code>SYNC_RUNNER</code></td><td>Repository variable (optional)</td><td>Label of a self-hosted runner to run the job on instead of GitHub's hosted Ubuntu runner.</td></tr>
+</tbody></table></div>
+<p><strong>Timings measured on 24 September 2026:</strong> ten regulators end to end in 16 minutes (CCI about 1 minute, FIU about 20 seconds, MIB about 2.5 minutes, ESIC about 6 minutes); DoT 60–75 minutes on its own. The job budget is 150 minutes.</p>
+
+<!-- ============================================================ -->
+<h2 id="reliability">Reliability safeguards built in</h2>
+<div class="good">Government websites change layout, rate-limit, time out and go down. The pipeline is built to report that honestly and recover on the next run, instead of silently recording "nothing new".</div>
+<div class="grid2">
+  <div class="card"><h3>Knows what it already has</h3><p>Before each regulator runs, the sync writes the <code>source_id</code>s already in Postgres to a file named in <code>SYNC_KNOWN_SOURCE_IDS_FILE</code>. CCI, FIU, DST and DoT skip those documents before any download, OCR or AI call. That keeps each run fast and costs proportional to what's new, even on a fresh CI machine with no local state.</p></div>
+  <div class="card"><h3>Never mistakes "empty" for "nothing new"</h3><p>If a watcher finds zero documents across every source, it exits with an error and leaves the previous output untouched. The run is then recorded as ERROR or BLOCKED, never as a confident "0 new documents".</p></div>
+  <div class="card"><h3>Block detection</h3><p>Watchers print standard markers when a site refuses them (HTTP 401, 403 or 429, WAF signatures). The sync records which regulators were blocked and still ingests whatever did come back.</p></div>
+  <div class="card"><h3>Stable document IDs</h3><p>IDs are built from things that don't move: for paginated feeds, the feed URL (never the page number) plus the title and file; for MIB, a canonical form of each link. A document that moves around a listing is still recognised.</p></div>
+  <div class="card"><h3>Readable logs</h3><p>The last 15 lines of every scraper's and adapter's output go into the sync log, so a CI failure can be diagnosed from the Actions log alone.</p></div>
+  <div class="card"><h3>Patient, bounded retries</h3><p>Slow sites get retries with longer timeouts. DST's shared fetch has a circuit breaker, so a site that's really down costs minutes, not the whole job. Every scraper also runs under a per-regulator time limit.</p></div>
+  <div class="card"><h3>Honest dates</h3><p>A future date (a scheduled hearing or event) is never stored as a publication date, month-only dates are stored consistently on every machine, and any genuinely future date from a source is shown with an "unverified" badge.</p></div>
+  <div class="card"><h3>Verification tool</h3><p><code>python scrapers/verify_normalized.py &lt;json&gt;</code> checks any scraper's output: required fields, duplicate IDs, date format, future dates, and a random sample of links that must really download (a PDF must actually be a PDF).</p></div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="running">Running it yourself</h2>
+<h3>First-time setup</h3>
+<pre><code>git clone &lt;repository URL&gt; &amp;&amp; cd regulatory-wiki
+cp .env.example .env              # then fill in your own values (see Credentials)
+npm install
+npx prisma generate
+npx prisma migrate deploy         # create the schema in your database
+npx tsx prisma/seed-dot.ts        # …and the other prisma/seed-*.ts files (see README)
+npx tsx scripts/set-admin-password.ts you@firm.com 'a-strong-password' 'Your Name'
+
+# Python side (for the scrapers)
+pip install -r scrapers/requirements-sync.txt
+pip install -r scrapers/cci_scraper/requirements.txt
+pip install -r scrapers/fiu_scraper/requirements.txt
+python -m playwright install --with-deps chromium</code></pre>
+<p>Poppler and Tesseract must be on <code>PATH</code> for the OCR fallbacks. If you're pointing at an existing, already-populated database, skip the migrate and seed steps.</p>
+
+<h3>Everyday commands</h3>
+<pre><code>npm run dev                                        # website on http://localhost:3000
+npm run sync                                       # sync every regulator
+npx tsx scripts/sync-all.ts --only CLC,ESIC        # sync specific regulators
+npm run sync:runs                                  # recent sync history
+
+# run one scraper by hand (from scrapers/)
+python labour_watcher_clc.py &amp;&amp; python run_clc_adapter.py
+npx tsx saral-sanchar/watch.ts
+python verify_normalized.py data/clc_normalized.json</code></pre>
+
+<!-- ============================================================ -->
+<h2 id="tools">Maintenance tools (<code>scripts/</code>)</h2>
+<p>Every script that changes data runs as a <strong>dry run by default</strong>, showing exactly what it would do, and only writes with <code>--apply</code>.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Script</th><th>Use it when</th></tr></thead>
+<tbody>
+<tr><td><code>sync-all.ts</code>, <code>show-sync-runs.ts</code></td><td>Run the sync; inspect its history.</td></tr>
+<tr><td><code>set-admin-password.ts</code></td><td>Create or reset an admin account.</td></tr>
+<tr><td><code>remap-moved-documents.ts</code></td><td>A regulator moved its website. Points stored documents at their new URLs, by exact title, one-to-one only, so they aren't ingested again.</td></tr>
+<tr><td><code>rekey-saral-sanchar.ts</code></td><td>Moves stored Saral Sanchar circulars onto their stable IDs (already applied). Its <code>--delete-duplicates</code> option removes the leftover copies.</td></tr>
+<tr><td><code>fix-local-midnight-dates.ts</code>, <code>clear-inspace-event-dates.ts</code>, <code>fix-dates-from-documents.ts</code>, <code>backfill-missing-dates.ts</code></td><td>Date repairs: timezone-shifted dates, event dates, dates read from document text.</td></tr>
+<tr><td><code>fix-amendment-status.ts</code>, <code>fix-supersede-status.ts</code>, <code>resolve-dos-isro-amendments.ts</code></td><td>Status corrections and amendment linking.</td></tr>
+<tr><td><code>reset-regulator-documents.ts</code></td><td>Taxonomy testing: deletes one regulator's documents (keeps its taxonomy) so a sample can be re-classified against a revised taxonomy.</td></tr>
+<tr><td><code>ingest-*.ts</code></td><td>One-off full ingestion per regulator, outside the daily sync.</td></tr>
+<tr><td><code>build-taxonomy-*.ts/.py</code>, <code>export-taxonomy.ts</code>, <code>populate-canonical-concepts.ts</code>, <code>revise_taxonomy_workbook.py</code></td><td>Taxonomy research: findings reports, workbooks, canonical concept mapping.</td></tr>
+</tbody></table></div>
+
+<!-- ============================================================ -->
+<h2 id="credentials">Credentials &amp; access</h2>
+<div class="plain">No passwords, API keys or database addresses are stored in the code. The repository only contains blank templates. Each person or server running the system supplies its own values, in a private settings file on their machine and in GitHub's encrypted secrets store.</div>
+<p>Every tracked file and the full Git history were checked for the DeepSeek key, the database connection details and the login secret, and none of them appear. Personal file paths and account names were removed from code comments and logs. These values need to be supplied:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Value</th><th>Needed by</th><th>Where to set it</th><th>How to get it</th></tr></thead>
+<tbody>
+<tr><td><code>DATABASE_URL</code></td><td>Website, sync, all scripts</td><td>Local <code>.env</code>; GitHub secret; hosting environment</td><td>Connection string of the team's PostgreSQL database (append <code>?sslmode=require</code> for Neon). Either the existing database, once access is shared, or a new one, set up with migrate + seed.</td></tr>
+<tr><td><code>DEEPSEEK_API_KEY</code></td><td>Sync and ingestion (not the website)</td><td>Local <code>.env</code>; GitHub secret</td><td>Create a key in the team's own DeepSeek account (platform.deepseek.com).</td></tr>
+<tr><td><code>NEXTAUTH_SECRET</code></td><td>Website admin login</td><td>Local <code>.env</code>; hosting environment</td><td>Generate a new one per environment:<br><code>node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"</code></td></tr>
+<tr><td><code>NEXTAUTH_URL</code></td><td>Website admin login</td><td>Local <code>.env</code>; hosting environment</td><td><code>http://localhost:3000</code> locally; the real public URL when deployed.</td></tr>
+<tr><td>Admin accounts</td><td>Review queue</td><td>Database (<code>User</code> table)</td><td><code>npx tsx scripts/set-admin-password.ts &lt;email&gt; '&lt;password&gt;' '&lt;name&gt;'</code></td></tr>
+<tr><td><code>SYNC_RUNNER</code> (optional)</td><td>Daily workflow</td><td>GitHub repository variable</td><td>The label of a self-hosted runner (see next steps).</td></tr>
+</tbody></table></div>
+<h3>Handover checklist</h3>
+<ol class="steps">
+  <li><strong>Repository access:</strong> add the team as collaborators, or transfer the repository to the team's GitHub organisation (Settings → General → Transfer ownership).</li>
+  <li><strong>GitHub secrets:</strong> under Settings → Secrets and variables → Actions, overwrite <code>DATABASE_URL</code> and <code>DEEPSEEK_API_KEY</code> with the team's own values. Secrets don't carry over when a repository is transferred, so after a transfer they must be added fresh.</li>
+  <li><strong>Database:</strong> either transfer or share the existing Neon project (keeps all 8,375 classified documents), or create a new database and populate it with <code>migrate deploy</code>, the seed scripts, and a sync.</li>
+  <li><strong>Admin logins:</strong> create accounts for each reviewer with <code>set-admin-password.ts</code>.</li>
+  <li><strong>Local <code>.env</code>:</strong> each developer copies <code>.env.example</code> and fills in the values above.</li>
+</ol>
+
+<!-- ============================================================ -->
+<h2 id="next">Recommended next steps</h2>
+<p>The pipeline is complete and verified end to end. These are the items to pick up next, in rough priority order.</p>
+
+<div class="card">
+  <h3>1. Run the daily job from an Indian connection</h3>
+  <p>Some Indian government sites treat GitHub's US-based servers differently from Indian connections. EPFO, for example, answers GitHub with HTTP 403 but serves every page to an Indian connection. The workflow is ready for this: register a self-hosted GitHub Actions runner on an Indian machine or cloud VM (Linux, with passwordless <code>sudo</code> for the package steps, or the packages preinstalled), then set the repository variable <code>SYNC_RUNNER</code> to its label. No code changes needed. Until then, affected regulators are recorded clearly as BLOCKED in the run log.</p>
+</div>
+<div class="card">
+  <h3>2. Tidy earlier duplicates</h3>
+  <p>The causes of the duplicate entries have been fixed, so no new ones are being created. Copies stored before the fix are kept in place until the team decides to remove them, because removal deletes their entries:</p>
+  <ul>
+    <li><strong>Saral Sanchar:</strong> 242 older copies. Remove with <code>npx tsx scripts/rekey-saral-sanchar.ts --apply --delete-duplicates</code> (dry-run first without the flags).</li>
+    <li><strong>MIB:</strong> 19 older copies, from the site alternating between two forms of the same link. A small cleanup script along the same lines would handle them.</li>
+  </ul>
+</div>
+<div class="card">
+  <h3>3. Complete the DoT catch-up</h3>
+  <p>dot.gov.in publishes considerably more than the 592 documents currently stored, and recent crawls surfaced several hundred more. The next successful DoT run will catch these up in one go (a larger than usual batch of classifications). It runs last in the sync, so it never delays the other regulators. Running it once by hand gives the most control:</p>
+  <pre><code>npx tsx scripts/sync-all.ts --only DOT</code></pre>
+  <p>DoT also re-uploaded its 2025-26 Annual Report chapters under new file addresses, so those 13 chapters will appear as new documents alongside the earlier versions.</p>
+</div>
+<div class="card">
+  <h3>4. Run the MERC backfill</h3>
+  <p>MERC's scraper and taxonomy are ready, and about 20,800 documents are available. Run the one-off backfill deliberately, then remove MERC's <code>skipScheduled</code> flag in <code>lib/sync.ts</code> so it joins the daily sync:</p>
+  <pre><code>npx tsx scripts/sync-all.ts --only MERC</code></pre>
+</div>
+<div class="card">
+  <h3>5. Smaller follow-ups</h3>
+  <ul>
+    <li><strong>DST:</strong> dst.gov.in's call-for-proposals archive is sometimes very slow to respond. On those days the run skips it cleanly and picks it up on a later day, and nothing already stored is affected.</li>
+    <li><strong>CLC:</strong> the Chief Labour Commissioner relaunched its website in September 2026 and is still republishing content. The scraper follows the new site; 47 older documents point to pages the old site no longer serves, and can be re-pointed with <code>remap-moved-documents.ts</code> as the new site fills in.</li>
+    <li><strong>Growing coverage:</strong> the ten additional scrapers in section 5 are ready to join the daily sync as their taxonomies are seeded.</li>
+    <li><strong>CPPP:</strong> design the tender ↔ corrigendum linking before scheduling it (see <code>scrapers/cppp-taxonomy-findings.md</code>).</li>
+  </ul>
+</div>
+
+<footer>
+  Regulatory Wiki handover guide · Prepared 24 September 2026 · Figures are from the live database and test runs on that date.
+</footer>
+</main>
+</div>
+</body>
+</html>
