@@ -1,5 +1,5 @@
 Loaded 89 normalized CPPP documents. Processing all of them.
-Sample written to C:\Users\shoot\Projects\regulatory-wiki\scripts\.audit\cppp-sample-all.json
+Sample written to <repo>\scripts\.audit\cppp-sample-all.json
 
 [FLAGGED] All Procurement Policy O.Ms Link -> subject=Procurement Policy & Framework | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.85
 [auto-accepted] Mandatory Publishing of Tender Information on CPPP -> subject=Public Information & Transparency | instrument=Circular / Office Memorandum | status=Not Applicable | confidence=0.75

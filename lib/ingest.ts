@@ -6,7 +6,7 @@
  * DeepSeek, and writes SourceDocument + UpdateEntry rows.
  *
  * Classification prompt/rules are ported from deepseek_eval.py
- * (C:\Users\shoot\Projects\ANS Wiki System\deepseek_eval.py), generalized
+ * (an earlier IFSCA evaluation script kept outside this repo), generalized
  * so the tag lists come from Postgres per-regulator instead of IFSCA's
  * hardcoded SUBJECT_CODES/INSTRUMENT_CODES dicts. Two IFSCA-specific rules
  * were intentionally NOT ported because they name IFSCA's own tags

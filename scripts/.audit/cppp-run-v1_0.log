@@ -1,5 +1,5 @@
 Loaded 100 normalized CPPP documents. Processing all of them.
-Sample written to C:\Users\shoot\Projects\regulatory-wiki\scripts\.audit\cppp-sample-all.json
+Sample written to <repo>\scripts\.audit\cppp-sample-all.json
 
 [auto-accepted] 53/EE/E-TVM/2026-27 (Central Public Works Department (CPWD)) -> subject=Works Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.85
 [auto-accepted] procurement of Rubber Pad for Longitudinal Bump Stop etc. -> subject=Goods Procurement | instrument=Tender Notice (NIT) | status=Live / Open | confidence=0.90

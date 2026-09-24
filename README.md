@@ -135,11 +135,13 @@ non-zero only if every regulator errored.
 It needs two repository secrets set under **Settings → Secrets and variables →
 Actions**: `DATABASE_URL` and `DEEPSEEK_API_KEY`.
 
-> **Expected on a fresh clone:** those secrets are deliberately not set in this
-> repository, so the scheduled run fails each morning until you add your own,
-> pointing at your own database and DeepSeek account. That failure is the
-> pending-setup signal, not a broken build — the job it runs is proven by
-> manual runs. Nothing else in the repo depends on it.
+> **No credentials live in this repository.** `.env` is gitignored, and every
+> connection string or key in tracked files is a placeholder. The real values
+> exist in two places only: each developer's local `.env`, and the GitHub
+> repository secrets above. Whoever runs this needs their own `DATABASE_URL`
+> and `DEEPSEEK_API_KEY` in both. A repository without those secrets fails its
+> scheduled run each morning; that is the pending-setup signal, not a broken
+> build.
 
 ## Layout
 

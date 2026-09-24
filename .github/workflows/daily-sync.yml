@@ -7,28 +7,21 @@ name: Daily regulator sync
 # portable, does not depend on where this eventually gets hosted, and the
 # sibling regtracker project already schedules its ingestion exactly this way.
 #
-# STATUS: this IS live. The repo now has a remote
-# (github.com/shootrishab-bot/regulatory-wiki) and the cron below has been
-# firing daily on schedule since at least 7 September 2026.
+# STATUS: live. The cron below runs daily from the default branch.
 #
-# Every one of those scheduled runs FAILED, and not one of them was a scraping
-# problem: the "Install Python dependencies" step below ran out of disk on the
-# runner. requirements.txt carries sentence-transformers, which drags in torch
-# and the full NVIDIA CUDA wheel set, and after npm ci there is not enough
-# space left for it:
+# Its first scheduled runs (from 7 September 2026) failed installing Python
+# dependencies: requirements.txt carries sentence-transformers, which drags in
+# torch and the full NVIDIA CUDA wheel set and exhausts the runner's disk
+# ("[Errno 28] No space left on device", run 35073407515). Nothing registered
+# in lib/sync.ts needs it -- only the unregistered cerc_scraper.py and
+# aptel_watcher.py do -- so this job installs scrapers/requirements-sync.txt,
+# the slim set the sync actually needs. See that file for the reasoning.
 #
-#   ERROR: Could not install packages due to an OSError:
-#   [Errno 28] No space left on device   (run 35073407515, 2026-09-16)
-#
-# Nothing in REGULATORS imports sentence-transformers -- only cerc_scraper.py
-# and aptel_watcher.py do, and neither is registered -- so that step now
-# installs scrapers/requirements-sync.txt, the slim set the sync actually
-# needs. See that file for the full reasoning.
-#
-# STILL UNVERIFIED after this fix: that DATABASE_URL and DEEPSEEK_API_KEY are
-# set as repository secrets. "gh secret list" returned nothing on 2026-09-17,
-# and the job cannot reach Postgres or classify a document without them -- it
-# simply never got far enough to prove it either way.
+# REQUIRED REPOSITORY SECRETS (Settings -> Secrets and variables -> Actions):
+#   DATABASE_URL      Postgres connection string for the wiki database
+#   DEEPSEEK_API_KEY  DeepSeek key used to classify new documents
+# Without them the job cannot reach Postgres or classify anything. Optional
+# repository VARIABLE: SYNC_RUNNER (see the runs-on comment below).
 
 on:
   schedule:

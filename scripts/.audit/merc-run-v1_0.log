@@ -1,5 +1,5 @@
 Loaded 20740 normalized MERC documents. Processing a seeded random sample of 100 (seed=20260910).
-Sample written to C:\Users\shoot\Projects\regulatory-wiki\scripts\.audit\merc-sample-20260910.json
+Sample written to <repo>\scripts\.audit\merc-sample-20260910.json
 
 [FLAGGED] Postponed Notice — Petition of Bhulani Steel against Maharashtra State -> subject=Standards of Performance & Consumer Protection | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.70
 [auto-accepted] Petition of Nidar Utilities Panvel LLP for the adoption of the Tariff  -> subject=Tariff Determination | instrument=Public Notice / Consultation Notice | status=Not Applicable | confidence=0.85
