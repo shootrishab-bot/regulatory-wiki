@@ -21,7 +21,8 @@ regulator website  ->  watcher/scraper  ->  adapter  ->  ingest (LLM)  ->  Postg
 - **Normalise** — each regulator's `run_*_adapter.py` turns its scraper output
   into the common normalised-JSON shape.
 - **Ingest** — `lib/ingest.ts` deduplicates against what is already known, then
-  calls DeepSeek to classify each genuinely new document against that
+  calls the configured AI model (any OpenAI-compatible provider, set by
+  `LLM_*` in `.env`) to classify each genuinely new document against that
   regulator's taxonomy (Instrument Type, Subject, Status, and other facets).
   Low-confidence results are flagged rather than published.
 - **Review** — `/admin/review` is the human queue for flagged entries.
@@ -64,7 +65,7 @@ Next.js 16 (App Router) · React 19 · Prisma 7 + PostgreSQL · NextAuth
 cp .env.example .env
 ```
 
-Fill in `DATABASE_URL`, `DEEPSEEK_API_KEY`, `NEXTAUTH_SECRET` and
+Fill in `DATABASE_URL`, the three `LLM_*` model settings, `NEXTAUTH_SECRET` and
 `NEXTAUTH_URL`. Generate a fresh `NEXTAUTH_SECRET` per environment:
 
 ```bash
@@ -132,14 +133,15 @@ source site is a recorded outcome, not a job failure: `sync-all.ts` exits
 non-zero only if every regulator errored.
 
 `.github/workflows/daily-sync.yml` runs the same command daily at 03:00 UTC.
-It needs two repository secrets set under **Settings → Secrets and variables →
-Actions**: `DATABASE_URL` and `DEEPSEEK_API_KEY`.
+It needs these repository settings under **Settings → Secrets and variables →
+Actions**: secrets `DATABASE_URL` and `LLM_API_KEY`, and variables
+`LLM_BASE_URL` and `LLM_MODEL`.
 
 > **No credentials live in this repository.** `.env` is gitignored, and every
 > connection string or key in tracked files is a placeholder. The real values
 > exist in two places only: each developer's local `.env`, and the GitHub
 > repository secrets above. Whoever runs this needs their own `DATABASE_URL`
-> and `DEEPSEEK_API_KEY` in both. A repository without those secrets fails its
+> and model settings (`LLM_*`) in both. A repository without those secrets fails its
 > scheduled run each morning; that is the pending-setup signal, not a broken
 > build.
 
@@ -157,7 +159,7 @@ Actions**: `DATABASE_URL` and `DEEPSEEK_API_KEY`.
 ## Deployment notes
 
 - The app needs `DATABASE_URL`, `NEXTAUTH_SECRET` and `NEXTAUTH_URL`. It reads
-  the database only — `DEEPSEEK_API_KEY` is needed by the sync job, not by the
+  the database only — the `LLM_*` model settings are needed by the sync job, not by the
   web app.
 - Run `npx prisma migrate deploy` as part of each deploy.
 - Set `NEXTAUTH_URL` to the real public origin, and use a `NEXTAUTH_SECRET`

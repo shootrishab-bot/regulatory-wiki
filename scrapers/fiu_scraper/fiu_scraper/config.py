@@ -3,6 +3,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 
+def _llm_setting(name: str, fallback: str) -> str:
+    """An LLM_* environment setting, or the DeepSeek-era fallback when unset."""
+    return os.environ.get(name) or fallback
+
+
 @dataclass
 class Config:
     """Configuration for the FIU-IND scraper. All secrets come from environment variables.
@@ -95,10 +100,13 @@ class Config:
     # Watcher
     CHECK_INTERVAL_HOURS: float = 6.0
 
-    # AI / DeepSeek
-    DEEPSEEK_API_KEY: str = field(default_factory=lambda: os.environ.get("DEEPSEEK_API_KEY", ""))
-    DEEPSEEK_API_URL: str = "https://api.deepseek.com/chat/completions"
-    DEEPSEEK_MODEL: str = "deepseek-chat"
+    # Classification model. Provider-neutral: any OpenAI-compatible
+    # /chat/completions endpoint, configured by the same three settings the
+    # wiki's own classifier uses (lib/ingest.ts). With LLM_* unset it falls
+    # back to DeepSeek and DEEPSEEK_API_KEY, as before.
+    LLM_API_KEY: str = field(default_factory=lambda: _llm_setting("LLM_API_KEY", os.environ.get("DEEPSEEK_API_KEY", "")))
+    LLM_API_URL: str = field(default_factory=lambda: _llm_setting("LLM_BASE_URL", "https://api.deepseek.com").rstrip("/") + "/chat/completions")
+    LLM_MODEL: str = field(default_factory=lambda: _llm_setting("LLM_MODEL", "deepseek-chat"))
     CLASSIFICATION_TEMPERATURE: float = 0.0
     CLASSIFICATION_MAX_TOKENS: int = 700
 

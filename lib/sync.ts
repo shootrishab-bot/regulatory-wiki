@@ -11,7 +11,7 @@
  *   dedup                         ingestBatch() -> findExistingSourceDocument,
  *                                 which matches on (regulatorId, sourceId),
  *                                 the scraper's own stable hash
- *   classification                ingestBatch() -> DeepSeek, unchanged
+ *   classification                ingestBatch() -> the configured AI model, unchanged
  *
  * This module is the orchestration and the honest bookkeeping around them.
  *
@@ -306,7 +306,7 @@ export const REGULATORS: RegulatorSync[] = [
     hasBlockedDetection: true,
     skipScheduled:
       "First sync is a ~20,600-document backfill, not a daily delta, and would " +
-      "exceed the workflow's 120-minute budget while spending real DeepSeek " +
+      "exceed the workflow's time budget while spending real model " +
       "credit. Run it deliberately: npx tsx scripts/sync-all.ts --only MERC",
   },
   {
@@ -459,6 +459,22 @@ function logTail(log: (msg: string) => void, code: string, script: string, outpu
 // sub-documents. A 30-minute cap cut it off mid-run during testing, so the
 // ceiling is generous. MIB (plain requests) finishes in ~3 minutes.
 const SCRAPE_TIMEOUT_MS = 45 * 60 * 1000;
+
+/**
+ * SYNC_SCRAPE_TIMEOUT_MINUTES, when set, replaces every regulator's scrape
+ * timeout for this run. It exists for the first sync into an EMPTY database:
+ * with nothing known yet, CCI and FIU download, OCR and pre-classify their
+ * whole corpus (CCI took ~48 minutes that way), far past the timeouts sized
+ * for a daily delta. A deliberate backfill runs as, e.g.:
+ *   SYNC_SCRAPE_TIMEOUT_MINUTES=240 npx tsx scripts/sync-all.ts --only CCI
+ * Never set it for the scheduled job, where a runaway scraper should still
+ * be cut off.
+ */
+function scrapeTimeoutFor(reg: RegulatorSync): number {
+  const override = Number(process.env.SYNC_SCRAPE_TIMEOUT_MINUTES);
+  if (Number.isFinite(override) && override > 0) return override * 60 * 1000;
+  return reg.scrapeTimeoutMs ?? SCRAPE_TIMEOUT_MS;
+}
 const ADAPTER_TIMEOUT_MS = 5 * 60 * 1000;
 
 export async function syncRegulator(
@@ -516,7 +532,7 @@ export async function syncRegulator(
 
   // -- 1. scrape ----------------------------------------------------------
   log(`[${reg.code}] running ${reg.watcher} ...`);
-  const scrape = await runScript(runtime, reg.watcher, reg.scrapeTimeoutMs ?? SCRAPE_TIMEOUT_MS, {
+  const scrape = await runScript(runtime, reg.watcher, scrapeTimeoutFor(reg), {
     SYNC_KNOWN_SOURCE_IDS_FILE: knownIdsFile,
   }).finally(() => fs.rmSync(knownIdsFile, { force: true }));
   const combined = scrape.stdout + "\n" + scrape.stderr;

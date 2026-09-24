@@ -17,11 +17,15 @@ name: Daily regulator sync
 # aptel_watcher.py do -- so this job installs scrapers/requirements-sync.txt,
 # the slim set the sync actually needs. See that file for the reasoning.
 #
-# REQUIRED REPOSITORY SECRETS (Settings -> Secrets and variables -> Actions):
-#   DATABASE_URL      Postgres connection string for the wiki database
-#   DEEPSEEK_API_KEY  DeepSeek key used to classify new documents
-# Without them the job cannot reach Postgres or classify anything. Optional
-# repository VARIABLE: SYNC_RUNNER (see the runs-on comment below).
+# REPOSITORY SETTINGS (Settings -> Secrets and variables -> Actions):
+#   secret   DATABASE_URL   Postgres connection string for the wiki database
+#   secret   LLM_API_KEY    API key of the classification model's provider
+#   variable LLM_BASE_URL   that provider's OpenAI-compatible base URL
+#   variable LLM_MODEL      the model name
+#   variable SYNC_RUNNER    optional, see the runs-on comment below
+# Legacy: with the LLM_* settings empty, the secret DEEPSEEK_API_KEY alone
+# selects DeepSeek, the original setup (see lib/ingest.ts getLlmConfig()).
+# Without a database and a model the job can neither store nor classify.
 
 on:
   schedule:
@@ -50,12 +54,12 @@ jobs:
     # packages preinstalled.
     runs-on: ${{ vars.SYNC_RUNNER || 'ubuntu-latest' }}
     # 12 regulators now (was 3 when this comment was first written; FIU-IND
-    # added 2026-08-25, MERC 2026-09-14), each new document costing a DeepSeek
+    # added 2026-08-25, MERC 2026-09-14), each new document costing a model
     # call. MERC is in REGULATORS but is deliberately EXCLUDED from scheduled
     # runs by its own skipScheduled flag, which lib/sync.ts honours when the
     # trigger is "schedule". Its first sync is a ~20,600-document backfill
     # rather than a daily delta, and it would exhaust the budget below every
-    # night while spending real DeepSeek credit to do it. Run it by hand once
+    # night while spending real model credit to do it. Run it by hand once
     # (npx tsx scripts/sync-all.ts --only MERC), then drop the flag. CCI and
     # DOS-ISRO were both already present in lib/sync.ts's REGULATORS array
     # (which this job's `sync-all.ts --trigger schedule` call below already
@@ -151,7 +155,10 @@ jobs:
       - name: Run sync
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_BASE_URL: ${{ vars.LLM_BASE_URL }}
+          LLM_MODEL: ${{ vars.LLM_MODEL }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }} # legacy fallback
         # Exits non-zero only if EVERY regulator errored. A regulator being
         # blocked is a recorded outcome, not a job failure -- see scripts/sync-all.ts.
         #

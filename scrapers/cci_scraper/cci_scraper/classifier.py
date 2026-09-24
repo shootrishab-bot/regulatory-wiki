@@ -193,14 +193,14 @@ async def classify(
     """Classify one document. Falls back to a distinct 'error_fallback' method
     (never silently blended with genuine model uncertainty) if the API key is
     missing or the call fails outright."""
-    if not config.DEEPSEEK_API_KEY:
+    if not config.LLM_API_KEY:
         return ClassificationResult(
             kept=True, needs_review=True, method="error_fallback",
-            review_reasons=["DEEPSEEK_API_KEY not configured -- classification did not run"],
+            review_reasons=["LLM_API_KEY not configured -- classification did not run"],
         )
 
     payload = {
-        "model": config.DEEPSEEK_MODEL,
+        "model": config.LLM_MODEL,
         "messages": [
             {"role": "system", "content": _system_prompt()},
             {"role": "user", "content": _user_prompt(title, content, url)},
@@ -210,27 +210,27 @@ async def classify(
         "response_format": {"type": "json_object"},
     }
     headers = {
-        "Authorization": f"Bearer {config.DEEPSEEK_API_KEY}",
+        "Authorization": f"Bearer {config.LLM_API_KEY}",
         "Content-Type": "application/json",
     }
 
     try:
         async with session.post(
-            config.DEEPSEEK_API_URL, json=payload, headers=headers,
+            config.LLM_API_URL, json=payload, headers=headers,
             timeout=aiohttp.ClientTimeout(total=config.REQUEST_TIMEOUT),
         ) as resp:
             if resp.status != 200:
                 body = await resp.text()
-                logger.error("DeepSeek API error %s: %s", resp.status, body[:500])
+                logger.error("Classification API error %s: %s", resp.status, body[:500])
                 return ClassificationResult(
                     kept=True, needs_review=True, method="error_fallback",
-                    review_reasons=[f"DeepSeek API returned HTTP {resp.status}"],
+                    review_reasons=[f"Classification API returned HTTP {resp.status}"],
                 )
             result = await resp.json()
             raw = result["choices"][0]["message"]["content"]
             return _validate_and_build(raw)
     except Exception as exc:
-        logger.error("DeepSeek call failed for %r: %s", title[:80], exc)
+        logger.error("Classification call failed for %r: %s", title[:80], exc)
         return ClassificationResult(
             kept=True, needs_review=True, method="error_fallback",
             review_reasons=[f"Classification call raised: {exc}"],

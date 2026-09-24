@@ -132,11 +132,12 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; border-top: 1px
     <li><a href="#more-scrapers">Additional scrapers</a></li>
     <li><a href="#repo">What lives where</a></li>
     <li><a href="#database">The database</a></li>
-    <li><a href="#classification">Classification &amp; review</a></li>
+    <li><a href="#classification">The AI model &amp; review</a></li>
     <li><a href="#website">The website</a></li>
     <li><a href="#automation">Daily automation</a></li>
     <li><a href="#reliability">Reliability safeguards</a></li>
-    <li><a href="#running">Running it yourself</a></li>
+    <li><a href="#scratch">Starting from scratch</a></li>
+    <li><a href="#running">Everyday commands</a></li>
     <li><a href="#tools">Maintenance tools</a></li>
     <li><a href="#credentials">Credentials &amp; access</a></li>
     <li><a href="#next">Recommended next steps</a></li>
@@ -150,7 +151,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; border-top: 1px
   <p class="lede">A regulatory-intelligence system for Indian regulators. It watches regulators' websites every day, collects every new circular, order, notification and report, uses an AI model to tag each one against a regulator-specific taxonomy, and publishes the result as a searchable, structured library.</p>
 
   <div class="stats">
-    <div class="stat"><div class="n">8,133</div><div class="l">documents collected and classified</div></div>
+    <div class="stat"><div class="n">8,133</div><div class="l">documents collected and classified during the build</div></div>
     <div class="stat"><div class="n">13</div><div class="l">regulators in the live database</div></div>
     <div class="stat"><div class="n">12</div><div class="l">regulators synced automatically every day</div></div>
     <div class="stat"><div class="n">~83%</div><div class="l">classified with high confidence, no human needed</div></div>
@@ -167,7 +168,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; border-top: 1px
 <div class="grid2">
   <div class="card"><h3>1. Scrapers &amp; watchers</h3><p>One per regulator, in <code>scrapers/</code>. They visit the regulator's site and list every document with its title, date and file link.</p></div>
   <div class="card"><h3>2. Adapters</h3><p>Convert each scraper's regulator-specific output into one shared format, the <em>normalized document</em>.</p></div>
-  <div class="card"><h3>3. Sync &amp; ingest</h3><p><code>lib/sync.ts</code> runs everything daily; <code>lib/ingest.ts</code> drops documents already stored and has DeepSeek classify the new ones.</p></div>
+  <div class="card"><h3>3. Sync &amp; ingest</h3><p><code>lib/sync.ts</code> runs everything daily; <code>lib/ingest.ts</code> drops documents already stored and has the configured AI model classify the new ones.</p></div>
   <div class="card"><h3>4. Database</h3><p>PostgreSQL via Prisma. It stores the taxonomies, the documents, their classifications, and a log of every sync run.</p></div>
   <div class="card"><h3>5. Website</h3><p>A Next.js app with a public library (ANS), a human review queue for admins, and the gyaani / Horizon Scan product shell.</p></div>
 </div>
@@ -183,7 +184,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; border-top: 1px
   <div class="arrow" aria-hidden="true">→</div>
   <div class="step" role="listitem"><b>Sync</b><span>keeps only new docs<br><code>lib/sync.ts</code></span></div>
   <div class="arrow" aria-hidden="true">→</div>
-  <div class="step" role="listitem"><b>Ingest</b><span>text + DeepSeek tags<br><code>lib/ingest.ts</code></span></div>
+  <div class="step" role="listitem"><b>Ingest</b><span>text + AI tags<br><code>lib/ingest.ts</code></span></div>
   <div class="arrow" aria-hidden="true">→</div>
   <div class="step" role="listitem"><b>Postgres</b><span>documents, entries, tags</span></div>
   <div class="arrow" aria-hidden="true">→</div>
@@ -195,7 +196,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; border-top: 1px
   <li><strong>Scrape.</strong> The watcher for each regulator loads its listing pages and records every document: title, date, category, and the link to the file. Sites that need a real browser (JavaScript-rendered pages, bot protection) use Playwright with Chromium. Simpler sites use plain HTTP requests (Python <code>requests</code>, or <code>fetch</code> + <code>cheerio</code> for the TypeScript scrapers).</li>
   <li><strong>Normalize.</strong> The adapter maps that raw output onto the shared <code>NormalizedDocument</code> contract (<code>scrapers/normalized_document.py</code>): <code>regulator_code</code>, <code>source_id</code>, <code>title</code>, <code>source_url</code>, <code>published_date</code>, <code>file_url</code>, <code>category_hint</code>, <code>status_hint</code>, <code>raw_text</code>, <code>needs_download</code>, <code>scraped_at</code>. It writes one JSON file per regulator, e.g. <code>scrapers/data/mib_normalized.json</code>.</li>
   <li><strong>Deduplicate.</strong> Every document has a stable <code>source_id</code>, a hash the scraper computes from things that don't change (usually the regulator, the document's URL and its title). The sync compares these against what Postgres already holds and keeps only the genuinely new ones.</li>
-  <li><strong>Classify.</strong> For each new document, <code>lib/ingest.ts</code> downloads the file where needed, extracts the text (PDF parsing, with OCR for scanned files in CCI, FIU and DST), and asks DeepSeek (<code>deepseek-chat</code>) to pick tags from that regulator's own taxonomy, which comes from Postgres with each tag's definition.</li>
+  <li><strong>Classify.</strong> For each new document, <code>lib/ingest.ts</code> downloads the file where needed, extracts the text (PDF parsing, with OCR for scanned files in CCI, FIU and DST), and asks the configured AI model (see <a href="#classification">section 8</a>) to pick tags from that regulator's own taxonomy, which comes from Postgres with each tag's definition.</li>
   <li><strong>Publish or queue.</strong> Results with confidence of at least <strong>0.75</strong> and no warning signs publish straight away. Everything else is flagged for the admin review queue at <code>/admin/review</code>.</li>
   <li><strong>Record.</strong> Every sync writes a <code>SyncRun</code> row, plus one <code>SyncRunRegulator</code> row per regulator: status (OK, BLOCKED, ERROR, SKIPPED), rows scraped, new, ingested, flagged, errors and duration.</li>
 </ol>
@@ -219,7 +220,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; border-top: 1px
 <h2 id="regulators">Regulators in the daily sync</h2>
 <p>These twelve are registered in the <code>REGULATORS</code> array in <code>lib/sync.ts</code> and run in that order. CPPP is also in the database; its scraper exists but isn't registered, for the reason given in its row.</p>
 <div class="table-wrap"><table>
-<thead><tr><th>Code</th><th>Regulator &amp; source</th><th>Watcher → adapter</th><th>Technique</th><th class="num">Docs stored</th></tr></thead>
+<thead><tr><th>Code</th><th>Regulator &amp; source</th><th>Watcher → adapter</th><th>Technique</th><th class="num">Docs at handover</th></tr></thead>
 <tbody>
 <tr><td><strong>MTCTE</strong></td><td>TEC Mandatory Testing &amp; Certification<br><code>mtcte.tec.gov.in</code>: archive (circulars, proforma) + homepage</td><td><code>mtcte_watcher.py</code> → <code>run_mtcte_adapter.py</code> (<code>mtcte_adapter.py</code>)</td><td>Playwright</td><td class="num">152</td></tr>
 <tr><td><strong>MIB</strong></td><td>Ministry of Information &amp; Broadcasting<br><code>mib.gov.in</code>: ~20 categories (press releases, advisories, notices, acts, e-books…)</td><td><code>mib_updates_scrapper.py</code> → <code>run_mib_adapter.py</code> (<code>mib_adapter.py</code>)</td><td>requests</td><td class="num">1,093</td></tr>
@@ -288,7 +289,7 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; border-top: 1px
 │   └── <span class="d">ui/</span>                   <span class="c">shadcn-style primitives</span>
 ├── <span class="d">lib/</span>
 │   ├── sync.ts                <span class="c">daily sync orchestrator + REGULATORS registry</span>
-│   ├── ingest.ts              <span class="c">text extraction + DeepSeek classification + DB writes</span>
+│   ├── ingest.ts              <span class="c">text extraction + AI classification + DB writes</span>
 │   ├── queries.ts             <span class="c">read queries used by the website</span>
 │   ├── auth.ts, require-admin.ts  <span class="c">NextAuth credentials login, admin guard</span>
 │   ├── file-kind.ts, document-date.ts, date-resolution.ts  <span class="c">display helpers</span>
@@ -335,14 +336,41 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; border-top: 1px
 <p>Schema changes go through Prisma migrations in <code>prisma/migrations/</code>: <code>npx prisma migrate dev</code> while developing, <code>npx prisma migrate deploy</code> on a server. The generated client is written to <code>app/generated/prisma</code>, which isn't in Git (run <code>npx prisma generate</code>).</p>
 
 <!-- ============================================================ -->
-<h2 id="classification">Classification &amp; human review</h2>
-<div class="plain">The AI reads each new document alongside the regulator's list of possible labels and their definitions, then picks the best fit and says how sure it is. Confident answers go straight into the library; uncertain ones wait for a person.</div>
+<h2 id="classification">The AI model &amp; human review</h2>
+<div class="plain">The AI reads each new document alongside the regulator's list of possible labels and their definitions, then picks the best fit and says how sure it is. Confident answers go straight into the library; uncertain ones wait for a person. The system isn't tied to one AI company: the model is chosen with three settings, and the team can use whichever provider it prefers.</div>
+
+<h3>Choosing the model: three settings</h3>
+<p>The classifier talks to any provider with an <strong>OpenAI-compatible chat API that supports JSON-object responses</strong>. Most major providers offer one. It is set by three placeholder settings, in <code>.env</code> locally and in GitHub for the daily job:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Setting</th><th>Placeholder in <code>.env.example</code></th><th>What to put there</th></tr></thead>
+<tbody>
+<tr><td><code>LLM_API_KEY</code></td><td><code>&lt;your-provider-api-key&gt;</code></td><td>An API key from the team's provider account.</td></tr>
+<tr><td><code>LLM_BASE_URL</code></td><td><code>&lt;your-provider-openai-compatible-base-url&gt;</code></td><td>The provider's OpenAI-compatible endpoint. Examples: OpenAI <code>https://api.openai.com/v1</code> · Google Gemini <code>https://generativelanguage.googleapis.com/v1beta/openai/</code> · Mistral <code>https://api.mistral.ai/v1</code> · DeepSeek <code>https://api.deepseek.com</code> · Azure OpenAI or an internal gateway: the endpoint your deployment gives you.</td></tr>
+<tr><td><code>LLM_MODEL</code></td><td><code>&lt;your-model-name&gt;</code></td><td>The model to use, exactly as the provider names it.</td></tr>
+</tbody></table></div>
 <ul>
-  <li><strong>Model:</strong> DeepSeek <code>deepseek-chat</code>, called through the OpenAI SDK pointed at DeepSeek's compatible endpoint (<code>lib/ingest.ts</code>).</li>
-  <li><strong>Prompt:</strong> built per regulator from Postgres: every Subject, Instrument Type and Status tag, <em>with its definition</em>, plus the scraper's category hint and whether the text is present, missing, or failed to extract.</li>
-  <li><strong>Rules:</strong> one Subject tag, with fallback to its parent; entity-versus-activity tie-breaks; Amended, Superseded and litigation statuses only when the document itself says so; In Force by default.</li>
-  <li><strong>Auto-accept threshold:</strong> 0.75. Below that, or when a check trips (low confidence, unreadable date, failed text extraction), the entry is flagged. About 83% of the 8,133 documents were accepted automatically.</li>
+  <li><strong>Where it is read:</strong> <code>getLlmConfig()</code> in <code>lib/ingest.ts</code> for the wiki's classifier, and the <code>Config</code> classes in <code>scrapers/cci_scraper/cci_scraper/config.py</code> and <code>scrapers/fiu_scraper/fiu_scraper/config.py</code> for those two packages. All three are needed together; a missing one stops ingestion with a message naming it.</li>
+  <li><strong>A provider without an OpenAI-compatible API:</strong> the call is made in one place, <code>classifyDocument()</code> in <code>lib/ingest.ts</code>. Swapping in another SDK there is the only code change needed; the prompt and everything around it stay as they are.</li>
+  <li><strong>Audit trail:</strong> every entry records the model that classified it (<code>UpdateEntry.classifiedBy</code>).</li>
+  <li><strong>Original setup:</strong> the system was built and tuned with DeepSeek's <code>deepseek-chat</code>. With the <code>LLM_*</code> settings left empty, a <code>DEEPSEEK_API_KEY</code> on its own still selects it, so the original configuration keeps working until the new one is in place.</li>
+</ul>
+
+<h3>How the prompt works</h3>
+<p>There is <strong>one prompt for every regulator</strong>, not one per scraper. It lives in <code>buildPrompt()</code> in <code>lib/ingest.ts</code>. The scrapers never talk to the AI; they only collect documents. What changes per regulator is the information filled into that prompt, all read from the database when each document is classified:</p>
+<ul>
+  <li><strong>The regulator's own labels:</strong> every Subject, Instrument Type and Status tag, <em>each with its definition</em>, loaded into the database by that regulator's <code>prisma/seed-&lt;regulator&gt;.ts</code> script from its taxonomy workbook.</li>
+  <li><strong>The document:</strong> its title, the section of the regulator's site it was filed under (a weak hint, which the document's own text overrides), and the first 4,000 characters of its text. When no text could be read, the prompt says so, so the model keeps its confidence low.</li>
+  <li><strong>Fixed tagging rules for every regulator:</strong> one Subject tag, falling back to its parent when a document genuinely spans two children; the kind of entity beats the activity when both fit; the document's own words beat pattern-matching on the title; "Amended", "Superseded" and litigation statuses only when the document itself is the one amended, replaced or stayed; the operative status (e.g. In Force) by default.</li>
+</ul>
+<p>The model replies with a small JSON object: subject, instrument type, status, a confidence between 0 and 1, and a one-sentence reason (shown on each document's page).</p>
+<div class="good"><strong>What this means in practice.</strong> Improving a regulator's results means editing its taxonomy (the workbook, then its seed script), not code. Adding a regulator needs a seed script, an adapter and a registry entry, but no new prompt.</div>
+
+<h3>Publishing and review</h3>
+<ul>
+  <li><strong>Auto-accept threshold:</strong> 0.75 (<code>AUTO_ACCEPT_THRESHOLD</code> in <code>lib/ingest.ts</code>). Below that, or when a check trips (low confidence, unreadable date, failed text extraction), the entry is flagged for review. With the original model about 83% of documents were accepted automatically.</li>
+  <li><strong>After changing model:</strong> different models express confidence differently, so check the threshold on a sample of each regulator before relying on it. The taxonomy-test scripts support exactly this loop (<code>reset-regulator-documents.ts</code>, a sample ingest, <code>analyze-taxonomy-run.ts</code>).</li>
   <li><strong>Review:</strong> admins sign in at <code>/admin/login</code> and work through <code>/admin/review</code>, confirming or correcting tags per document.</li>
+  <li><strong>CCI and FIU:</strong> these two packages also run a small pre-classification of their own (<code>classifier.py</code>), using the same <code>LLM_*</code> settings. It only decides which items to keep (it drops pure press/event items); the wiki re-classifies everything it stores with the main prompt. Without a key the packages keep every item and carry on.</li>
 </ul>
 
 <!-- ============================================================ -->
@@ -369,7 +397,8 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; border-top: 1px
 <thead><tr><th>Setting</th><th>Where</th><th>Purpose</th></tr></thead>
 <tbody>
 <tr><td><code>DATABASE_URL</code></td><td>Repository secret</td><td>Postgres connection for the sync.</td></tr>
-<tr><td><code>DEEPSEEK_API_KEY</code></td><td>Repository secret</td><td>Classification of new documents.</td></tr>
+<tr><td><code>LLM_API_KEY</code></td><td>Repository secret</td><td>The AI provider's API key.</td></tr>
+<tr><td><code>LLM_BASE_URL</code>, <code>LLM_MODEL</code></td><td>Repository variables</td><td>The provider's endpoint and model name (not secret).</td></tr>
 <tr><td><code>SYNC_RUNNER</code></td><td>Repository variable (optional)</td><td>Label of a self-hosted runner to run the job on instead of GitHub's hosted Ubuntu runner.</td></tr>
 </tbody></table></div>
 <p><strong>Timings measured on 24 September 2026:</strong> ten regulators end to end in 16 minutes (CCI about 1 minute, FIU about 20 seconds, MIB about 2.5 minutes, ESIC about 6 minutes); DoT 60–75 minutes on its own. The job budget is 150 minutes.</p>
@@ -389,24 +418,77 @@ footer { margin-top: 64px; color: var(--muted); font-size: 13px; border-top: 1px
 </div>
 
 <!-- ============================================================ -->
-<h2 id="running">Running it yourself</h2>
-<h3>First-time setup</h3>
+<h2 id="scratch">Starting from scratch</h2>
+<div class="plain">The repository contains all the code and every regulator's label definitions, but no documents: those live in a database. A new team starts with an empty database and builds the library in four stages: get accounts, set up, fill the library once (the "backfill"), then switch on the daily updates. After that, each day only adds what's new.</div>
+
+<h3>Stage 1 · Accounts and settings</h3>
+<ul>
+  <li><strong>A PostgreSQL database</strong> from any provider or an internal server. Its connection string goes in <code>DATABASE_URL</code> (add <code>?sslmode=require</code> where the provider needs SSL).</li>
+  <li><strong>An AI provider account</strong> with an OpenAI-compatible API: fill in <code>LLM_API_KEY</code>, <code>LLM_BASE_URL</code> and <code>LLM_MODEL</code> (see <a href="#classification">section 8</a>).</li>
+  <li><strong>Login settings</strong> for the website: a freshly generated <code>NEXTAUTH_SECRET</code> and the site's address in <code>NEXTAUTH_URL</code>.</li>
+  <li><strong>A machine on an Indian internet connection</strong> for the backfill and, ideally, the daily job. Several government sites refuse or slow down foreign datacentre traffic.</li>
+</ul>
+
+<h3>Stage 2 · Set up</h3>
 <pre><code>git clone &lt;repository URL&gt; &amp;&amp; cd regulatory-wiki
-cp .env.example .env              # then fill in your own values (see Credentials)
+cp .env.example .env                 # replace every &lt;placeholder&gt; with the team's values
 npm install
 npx prisma generate
-npx prisma migrate deploy         # create the schema in your database
-npx tsx prisma/seed-dot.ts        # …and the other prisma/seed-*.ts files (see README)
-npx tsx scripts/set-admin-password.ts you@firm.com 'a-strong-password' 'Your Name'
+npx prisma migrate deploy            # create the empty schema
 
-# Python side (for the scrapers)
+# load every regulator's labels (each script is safe to re-run)
+npx tsx prisma/seed-dot.ts
+npx tsx prisma/seed-mtcte.ts
+npx tsx prisma/seed-mib.ts
+npx tsx prisma/seed-employment-law.ts   # EPFO, ESIC, CLC
+npx tsx prisma/seed-saral-sanchar.ts
+npx tsx prisma/seed-dst.ts
+npx tsx prisma/seed-dos-isro.ts
+npx tsx prisma/seed-cci.ts
+npx tsx prisma/seed-fiu.ts
+npx tsx prisma/seed-merc.ts
+npx tsx prisma/seed-cppp.ts
+
+npx tsx scripts/set-admin-password.ts &lt;email&gt; '&lt;password&gt;' '&lt;name&gt;'
+
+# Python side, for the scrapers
 pip install -r scrapers/requirements-sync.txt
 pip install -r scrapers/cci_scraper/requirements.txt
 pip install -r scrapers/fiu_scraper/requirements.txt
 python -m playwright install --with-deps chromium</code></pre>
-<p>Poppler and Tesseract must be on <code>PATH</code> for the OCR fallbacks. If you're pointing at an existing, already-populated database, skip the migrate and seed steps.</p>
+<p>Poppler and Tesseract must be on <code>PATH</code> for the OCR fallbacks (<code>sudo apt-get install -y poppler-utils tesseract-ocr</code> on Linux).</p>
 
-<h3>Everyday commands</h3>
+<h3>Stage 3 · Fill the library (the one-time backfill)</h3>
+<p>With an empty database, every document a scraper finds counts as new, so the first sync of each regulator collects and classifies its whole published history. Run it by hand, one regulator at a time, rather than through the scheduled job:</p>
+<pre><code>SYNC_SCRAPE_TIMEOUT_MINUTES=240 npx tsx scripts/sync-all.ts --only EPFO</code></pre>
+<p><code>SYNC_SCRAPE_TIMEOUT_MINUTES</code> lifts the per-regulator time limits, which are sized for daily updates, for that run only. Every run is <strong>resumable</strong>: documents are saved one at a time, so if a run is interrupted, running the same command again skips everything already stored and carries on.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Regulator</th><th class="num">Documents to expect</th><th>Notes for the first run</th></tr></thead>
+<tbody>
+<tr><td>MTCTE</td><td class="num">~150</td><td>Quick.</td></tr>
+<tr><td>MIB</td><td class="num">~1,060</td><td></td></tr>
+<tr><td>EPFO</td><td class="num">~1,890</td><td>Largest of the daily regulators.</td></tr>
+<tr><td>ESIC</td><td class="num">~300</td><td>Each run reads the newest 30 listing pages. For a deeper history on the first run, raise <code>MAX_PAGES_DEFAULT</code> in <code>scrapers/labour_scrape.py</code> temporarily.</td></tr>
+<tr><td>CLC</td><td class="num">~5</td><td>The regulator relaunched its site in September 2026 and is still republishing; this grows as it does.</td></tr>
+<tr><td>SARALSANCHAR</td><td class="num">~415</td><td></td></tr>
+<tr><td>DST</td><td class="num">~690</td><td>Extracts document text itself (with OCR), so the first run is slower.</td></tr>
+<tr><td>DOS-ISRO</td><td class="num">~530</td><td></td></tr>
+<tr><td>CCI</td><td class="num">~1,340</td><td>Downloads and OCRs every order on the first run (~50 minutes before classification starts).</td></tr>
+<tr><td>FIU</td><td class="num">~520</td><td>Same pattern as CCI, smaller.</td></tr>
+<tr><td>DOT</td><td class="num">600–900</td><td>dot.gov.in rate-limits a different set of pages on each run, so run it two or three times in the first week; each run adds what the previous one couldn't reach. About 60–75 minutes per crawl.</td></tr>
+<tr><td>MERC</td><td class="num">~20,800</td><td>The big one. Run it last, over several sessions if needed, then remove MERC's <code>skipScheduled</code> flag in <code>lib/sync.ts</code> so it joins the daily job.</td></tr>
+</tbody></table></div>
+<p><strong>Time and cost.</strong> Classification runs at roughly 3–5 seconds per document, including downloading and reading it. The eleven daily regulators, about 7,500–7,800 documents in all, take about 6–10 hours in total, spread over as many sessions as convenient. MERC takes roughly a day of running time on its own. Each document is one AI call; CCI and FIU add one extra call per item on their first run for their own pre-classification (about 1,900 calls).</p>
+<p><strong>Expect a review queue.</strong> Around one document in six is typically flagged for a person to check: documents whose text couldn't be read (old scanned orders) and genuinely ambiguous ones. Reviewers work through them at <code>/admin/review</code>.</p>
+
+<h3>Stage 4 · Switch on the daily updates</h3>
+<ol class="steps">
+  <li>In GitHub, under Settings → Secrets and variables → Actions, add the secrets <code>DATABASE_URL</code> and <code>LLM_API_KEY</code>, and the variables <code>LLM_BASE_URL</code> and <code>LLM_MODEL</code>.</li>
+  <li>Optionally register a self-hosted runner on an Indian connection and set the variable <code>SYNC_RUNNER</code> to its label (see <a href="#next">next steps</a>).</li>
+  <li>Start the workflow once by hand (Actions → Daily regulator sync → Run workflow), then check the result with <code>npm run sync:runs</code>. From then on it runs every morning, and each run only processes what's new.</li>
+</ol>
+
+<h2 id="running">Everyday commands</h2>
 <pre><code>npm run dev                                        # website on http://localhost:3000
 npm run sync                                       # sync every regulator
 npx tsx scripts/sync-all.ts --only CLC,ESIC        # sync specific regulators
@@ -426,7 +508,7 @@ python verify_normalized.py data/clc_normalized.json</code></pre>
 <tr><td><code>sync-all.ts</code>, <code>show-sync-runs.ts</code></td><td>Run the sync; inspect its history.</td></tr>
 <tr><td><code>set-admin-password.ts</code></td><td>Create or reset an admin account.</td></tr>
 <tr><td><code>remap-moved-documents.ts</code></td><td>A regulator moved its website. Points stored documents at their new URLs, by exact title, one-to-one only, so they aren't ingested again.</td></tr>
-<tr><td><code>rekey-saral-sanchar.ts</code></td><td>Moves stored Saral Sanchar circulars onto their stable IDs (already applied). Its <code>--delete-duplicates</code> option removed the 242 leftover copies (also applied).</td></tr>
+<tr><td><code>rekey-saral-sanchar.ts</code></td><td>One-off migration of an older database onto Saral Sanchar's stable IDs. Not needed for a new database, which uses them from the start.</td></tr>
 <tr><td><code>fix-local-midnight-dates.ts</code>, <code>clear-inspace-event-dates.ts</code>, <code>fix-dates-from-documents.ts</code>, <code>backfill-missing-dates.ts</code></td><td>Date repairs: timezone-shifted dates, event dates, dates read from document text.</td></tr>
 <tr><td><code>fix-amendment-status.ts</code>, <code>fix-supersede-status.ts</code>, <code>resolve-dos-isro-amendments.ts</code></td><td>Status corrections and amendment linking.</td></tr>
 <tr><td><code>reset-regulator-documents.ts</code></td><td>Taxonomy testing: deletes one regulator's documents (keeps its taxonomy) so a sample can be re-classified against a revised taxonomy.</td></tr>
@@ -437,12 +519,13 @@ python verify_normalized.py data/clc_normalized.json</code></pre>
 <!-- ============================================================ -->
 <h2 id="credentials">Credentials &amp; access</h2>
 <div class="plain">No passwords, API keys or database addresses are stored in the code. The repository only contains blank templates. Each person or server running the system supplies its own values, in a private settings file on their machine and in GitHub's encrypted secrets store.</div>
-<p>Every tracked file and the full Git history were checked for the DeepSeek key, the database connection details and the login secret, and none of them appear. Personal file paths and account names were removed from code comments and logs. These values need to be supplied:</p>
+<p>Every tracked file and the full Git history were checked for the AI provider key, the database connection details and the login secret, and none of them appear. Personal file paths and account names were removed from code comments and logs. These values need to be supplied:</p>
 <div class="table-wrap"><table>
 <thead><tr><th>Value</th><th>Needed by</th><th>Where to set it</th><th>How to get it</th></tr></thead>
 <tbody>
-<tr><td><code>DATABASE_URL</code></td><td>Website, sync, all scripts</td><td>Local <code>.env</code>; GitHub secret; hosting environment</td><td>Connection string of the team's PostgreSQL database (append <code>?sslmode=require</code> for Neon). Either the existing database, once access is shared, or a new one, set up with migrate + seed.</td></tr>
-<tr><td><code>DEEPSEEK_API_KEY</code></td><td>Sync and ingestion (not the website)</td><td>Local <code>.env</code>; GitHub secret</td><td>Create a key in the team's own DeepSeek account (platform.deepseek.com).</td></tr>
+<tr><td><code>DATABASE_URL</code></td><td>Website, sync, all scripts</td><td>Local <code>.env</code>; GitHub secret; hosting environment</td><td>Connection string of the team's new PostgreSQL database (see <a href="#scratch">Starting from scratch</a>).</td></tr>
+<tr><td><code>LLM_API_KEY</code></td><td>Sync, ingestion, CCI/FIU scrapers (not the website)</td><td>Local <code>.env</code>; GitHub secret</td><td>An API key from the team's chosen AI provider.</td></tr>
+<tr><td><code>LLM_BASE_URL</code>, <code>LLM_MODEL</code></td><td>Same as above</td><td>Local <code>.env</code>; GitHub variables</td><td>The provider's OpenAI-compatible endpoint and the model name (see <a href="#classification">section 8</a>).</td></tr>
 <tr><td><code>NEXTAUTH_SECRET</code></td><td>Website admin login</td><td>Local <code>.env</code>; hosting environment</td><td>Generate a new one per environment:<br><code>node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"</code></td></tr>
 <tr><td><code>NEXTAUTH_URL</code></td><td>Website admin login</td><td>Local <code>.env</code>; hosting environment</td><td><code>http://localhost:3000</code> locally; the real public URL when deployed.</td></tr>
 <tr><td>Admin accounts</td><td>Review queue</td><td>Database (<code>User</code> table)</td><td><code>npx tsx scripts/set-admin-password.ts &lt;email&gt; '&lt;password&gt;' '&lt;name&gt;'</code></td></tr>
@@ -451,8 +534,8 @@ python verify_normalized.py data/clc_normalized.json</code></pre>
 <h3>Handover checklist</h3>
 <ol class="steps">
   <li><strong>Repository access:</strong> add the team as collaborators, or transfer the repository to the team's GitHub organisation (Settings → General → Transfer ownership).</li>
-  <li><strong>GitHub secrets:</strong> under Settings → Secrets and variables → Actions, overwrite <code>DATABASE_URL</code> and <code>DEEPSEEK_API_KEY</code> with the team's own values. Secrets don't carry over when a repository is transferred, so after a transfer they must be added fresh.</li>
-  <li><strong>Database:</strong> either transfer or share the existing Neon project (keeps all 8,133 classified documents), or create a new database and populate it with <code>migrate deploy</code>, the seed scripts, and a sync.</li>
+  <li><strong>GitHub settings:</strong> under Settings → Secrets and variables → Actions, set the secrets <code>DATABASE_URL</code> and <code>LLM_API_KEY</code> and the variables <code>LLM_BASE_URL</code> and <code>LLM_MODEL</code> to the team's own values, and delete the old <code>DEEPSEEK_API_KEY</code> and <code>DATABASE_URL</code> secrets from the original setup. Secrets don't carry over when a repository is transferred, so after a transfer they are added fresh.</li>
+  <li><strong>Database:</strong> create the team's own PostgreSQL database and build it as described in <a href="#scratch">Starting from scratch</a>.</li>
   <li><strong>Admin logins:</strong> create accounts for each reviewer with <code>set-admin-password.ts</code>.</li>
   <li><strong>Local <code>.env</code>:</strong> each developer copies <code>.env.example</code> and fills in the values above.</li>
 </ol>
@@ -462,40 +545,30 @@ python verify_normalized.py data/clc_normalized.json</code></pre>
 <p>The pipeline is complete and verified end to end. These are the items to pick up next, in rough priority order.</p>
 
 <div class="card">
-  <h3>1. Run the daily job from an Indian connection</h3>
+  <h3>1. Choose and configure the AI model</h3>
+  <p>Pick the provider, fill in <code>LLM_API_KEY</code>, <code>LLM_BASE_URL</code> and <code>LLM_MODEL</code>, and classify a small sample of each regulator before the full backfill, to confirm the model follows the JSON format and to check that the 0.75 auto-accept threshold suits it (<a href="#classification">section 8</a>).</p>
+</div>
+<div class="card">
+  <h3>2. Build the library</h3>
+  <p>Set up the database and run the one-time backfill, regulator by regulator, then switch on the daily job (<a href="#scratch">Starting from scratch</a>). DoT benefits from two or three passes in the first week, and MERC is best left until last.</p>
+</div>
+<div class="card">
+  <h3>3. Run the daily job from an Indian connection</h3>
   <p>Some Indian government sites treat GitHub's US-based servers differently from Indian connections. EPFO, for example, answers GitHub with HTTP 403 but serves every page to an Indian connection. The workflow is ready for this: register a self-hosted GitHub Actions runner on an Indian machine or cloud VM (Linux, with passwordless <code>sudo</code> for the package steps, or the packages preinstalled), then set the repository variable <code>SYNC_RUNNER</code> to its label. No code changes needed. Until then, affected regulators are recorded clearly as BLOCKED in the run log.</p>
 </div>
 <div class="card">
-  <h3>2. Tidy earlier duplicates</h3>
-  <p>The causes of the duplicate entries have been fixed, so no new ones are being created. Copies stored before the fix:</p>
+  <h3>4. Smaller follow-ups</h3>
   <ul>
-    <li><strong>Saral Sanchar:</strong> done. The 242 older copies were removed on 24 September 2026 (all were machine-classified, none human-reviewed), leaving 417 unique documents.</li>
-    <li><strong>MIB:</strong> 19 older copies, from the site alternating between two forms of the same link. A small cleanup script along the same lines would handle them.</li>
-  </ul>
-</div>
-<div class="card">
-  <h3>3. Complete the DoT catch-up</h3>
-  <p>dot.gov.in publishes considerably more than the 592 documents currently stored, and recent crawls surfaced several hundred more. The next successful DoT run will catch these up in one go (a larger than usual batch of classifications). It runs last in the sync, so it never delays the other regulators. Running it once by hand gives the most control:</p>
-  <pre><code>npx tsx scripts/sync-all.ts --only DOT</code></pre>
-  <p>DoT also re-uploaded its 2025-26 Annual Report chapters under new file addresses, so those 13 chapters will appear as new documents alongside the earlier versions.</p>
-</div>
-<div class="card">
-  <h3>4. Run the MERC backfill</h3>
-  <p>MERC's scraper and taxonomy are ready, and about 20,800 documents are available. Run the one-off backfill deliberately, then remove MERC's <code>skipScheduled</code> flag in <code>lib/sync.ts</code> so it joins the daily sync:</p>
-  <pre><code>npx tsx scripts/sync-all.ts --only MERC</code></pre>
-</div>
-<div class="card">
-  <h3>5. Smaller follow-ups</h3>
-  <ul>
-    <li><strong>DST:</strong> dst.gov.in's call-for-proposals archive is sometimes very slow to respond. On those days the run skips it cleanly and picks it up on a later day, and nothing already stored is affected.</li>
-    <li><strong>CLC:</strong> the Chief Labour Commissioner relaunched its website in September 2026 and is still republishing content. The scraper follows the new site; 47 older documents point to pages the old site no longer serves, and can be re-pointed with <code>remap-moved-documents.ts</code> as the new site fills in.</li>
-    <li><strong>Growing coverage:</strong> the ten additional scrapers in section 5 are ready to join the daily sync as their taxonomies are seeded.</li>
+    <li><strong>DST:</strong> dst.gov.in's call-for-proposals archive is sometimes very slow to respond. On those days the run skips it cleanly and picks it up on a later day.</li>
+    <li><strong>CLC:</strong> the Chief Labour Commissioner relaunched its website in September 2026 and is still republishing older material; the scraper follows the new site, so its count grows as the site fills in.</li>
+    <li><strong>CCI and FIU pre-classification:</strong> optional. Their own classifier only filters out press and event items; switching it off would save one AI call per new item, with those items then filtered at review instead.</li>
+    <li><strong>Growing coverage:</strong> the ten additional scrapers in <a href="#more-scrapers">section 5</a> are ready to join the daily sync as their taxonomies are seeded.</li>
     <li><strong>CPPP:</strong> design the tender ↔ corrigendum linking before scheduling it (see <code>scrapers/cppp-taxonomy-findings.md</code>).</li>
   </ul>
 </div>
 
 <footer>
-  Regulatory Wiki handover guide · Prepared 24 September 2026 · Figures are from the live database and test runs on that date.
+  Regulatory Wiki handover guide · Prepared 24 September 2026 · Document counts are from the build database and test runs on that date; a new database starts empty and fills as described in Starting from scratch.
 </footer>
 </main>
 </div>

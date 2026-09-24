@@ -65,9 +65,12 @@ def main():
     from cci_scraper.config import Config
 
     config = Config()
-    if not config.DEEPSEEK_API_KEY:
-        print("DEEPSEEK_API_KEY not set -- cannot classify. Aborting.", file=sys.stderr)
-        sys.exit(1)
+    # The package's own classifier only decides which items to keep (it
+    # drops pure press/event items); the wiki re-classifies everything it
+    # ingests with lib/ingest.ts. Without a key every item is kept and
+    # flagged, so the run still completes rather than aborting.
+    if not config.LLM_API_KEY:
+        print("LLM_API_KEY not set -- the package's own pre-classification is skipped; every item is kept.", file=sys.stderr)
 
     records = asyncio.run(run_scrape(config, limit=args.limit, exclude_ids=load_known_ids()))
     print(f"CCI scrape complete: {len(records)} real items processed.")

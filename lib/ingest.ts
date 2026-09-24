@@ -111,19 +111,52 @@ export type IngestOutcome =
   | { status: "error"; sourceId: string; title: string; error: string };
 
 // ---------------------------------------------------------------------------
-// DeepSeek client — OpenAI-compatible API, same as deepseek_eval.py's setup.
+// Classification model client.
+//
+// Provider-neutral: any service exposing an OpenAI-compatible
+// /chat/completions endpoint with JSON-object responses works (OpenAI, Azure
+// OpenAI, Google Gemini's OpenAI-compatible endpoint, Mistral, DeepSeek, a
+// self-hosted gateway, ...). Configured by three settings:
+//
+//   LLM_API_KEY    the provider's API key
+//   LLM_BASE_URL   the provider's OpenAI-compatible base URL
+//   LLM_MODEL      the model name, e.g. "<your-model-name>"
+//
+// Backward compatibility: with LLM_* unset and DEEPSEEK_API_KEY set, it uses
+// DeepSeek's endpoint and deepseek-chat, the model every entry up to
+// September 2026 was classified with.
 // ---------------------------------------------------------------------------
-const DEEPSEEK_BASE_URL = "https://api.deepseek.com";
-const MODEL = "deepseek-chat";
 const AUTO_ACCEPT_THRESHOLD = 0.75; // matches PIPELINE_OVERVIEW.md §3.1's calibrated threshold
 
-function getDeepSeekClient(): OpenAI {
-  const apiKey = process.env.DEEPSEEK_API_KEY;
-  if (!apiKey) {
-    throw new Error(
-      "DEEPSEEK_API_KEY is not set. Add it to .env before running the ingestion service."
-    );
+interface LlmConfig {
+  apiKey: string;
+  baseURL: string;
+  model: string;
+}
+
+function getLlmConfig(): LlmConfig {
+  const { LLM_API_KEY, LLM_BASE_URL, LLM_MODEL, DEEPSEEK_API_KEY } = process.env;
+  if (LLM_API_KEY || LLM_BASE_URL || LLM_MODEL) {
+    const missing = [
+      !LLM_API_KEY && "LLM_API_KEY",
+      !LLM_BASE_URL && "LLM_BASE_URL",
+      !LLM_MODEL && "LLM_MODEL",
+    ].filter(Boolean);
+    if (missing.length) {
+      throw new Error(`${missing.join(", ")} not set. All three LLM_* settings are needed together (see .env.example).`);
+    }
+    return { apiKey: LLM_API_KEY!, baseURL: LLM_BASE_URL!, model: LLM_MODEL! };
   }
+  if (DEEPSEEK_API_KEY) {
+    return { apiKey: DEEPSEEK_API_KEY, baseURL: "https://api.deepseek.com", model: "deepseek-chat" };
+  }
+  throw new Error(
+    "No classification model configured. Set LLM_API_KEY, LLM_BASE_URL and LLM_MODEL in .env (see .env.example)."
+  );
+}
+
+function getLlmClient(): { client: OpenAI; model: string } {
+  const { apiKey, baseURL, model } = getLlmConfig();
   // REAL BUG FOUND AND FIXED (2026-08-17): no explicit timeout meant the
   // OpenAI SDK's own default (10 minutes) applied -- a real DST batch stalled
   // for 5+ minutes with zero Postgres writes and no fetch in flight (already
@@ -132,7 +165,7 @@ function getDeepSeekClient(): OpenAI {
   // generous for a classification call; a document that trips it gets a
   // real timeout error (caught by ingestDocument()'s own try/catch, logged,
   // and the batch moves on) instead of stalling everything behind it.
-  return new OpenAI({ apiKey, baseURL: DEEPSEEK_BASE_URL, timeout: 60_000 });
+  return { client: new OpenAI({ apiKey, baseURL, timeout: 60_000 }), model };
 }
 
 // ---------------------------------------------------------------------------
@@ -434,7 +467,7 @@ async function classifyDocument(
   sourceCategory: string | null,
   extractionFailed = false
 ): Promise<ClassificationResult> {
-  const client = getDeepSeekClient();
+  const { client, model } = getLlmClient();
   const subjectSection = renderTagSection("SUBJECT", subjectTags);
   const instrumentSection = renderTagSection("INSTRUMENT TYPE", instrumentTags);
   const statusSection = renderStatusSection(statusTags, subjectTags);
@@ -451,7 +484,7 @@ async function classifyDocument(
   );
 
   const response = await client.chat.completions.create({
-    model: MODEL,
+    model,
     messages: [{ role: "user", content: prompt }],
     response_format: { type: "json_object" },
     temperature: 0,
@@ -459,7 +492,7 @@ async function classifyDocument(
 
   const raw = response.choices[0]?.message?.content;
   if (!raw) {
-    throw new Error("DeepSeek returned an empty response");
+    throw new Error("The classification model returned an empty response");
   }
 
   const parsed = JSON.parse(raw) as ClassificationResult;
@@ -768,7 +801,7 @@ export async function ingestDocument(
             needsReview,
             reviewReasons,
             taxonomyVersion: "v1.0",
-            classifiedBy: MODEL,
+            classifiedBy: getLlmConfig().model,
           },
         }),
       "UpdateEntry create"
